@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Acts Quiz Arcade V2</title>
+    <title>Acts Quiz Arcade</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -121,6 +121,9 @@
   <body class="min-h-screen bg-art">
     <div id="confetti" class="confetti hidden"></div>
 
+    <!-- Background music -->
+    <audio id="bgMusic" src="./fairy-tale-loop-275534.mp3" loop preload="auto"></audio>
+
     <!-- Menu Screen -->
     <div id="menu" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
       <div class="paper w-full max-w-md rounded-3xl p-6 text-[color:var(--ink)]">
@@ -188,7 +191,7 @@
         </div>
       </header>
 
-      <!-- Progress track like the reference -->
+      <!-- Progress -->
       <section class="mt-4">
         <div class="flex items-center gap-3">
           <span class="text-2xl">⭐</span>
@@ -198,8 +201,8 @@
           <span class="text-2xl">⭐</span>
         </div>
         <div class="mt-2 flex items-center justify-between text-sm text-[color:var(--ink)] font-extrabold">
-          <span id="statLevelName">New Fire (Acts 1-5)</span>
-          <span id="statProgress">1/20</span>
+          <span id="statLevelName">New Fire</span>
+          <span id="statProgress">1/30</span>
         </div>
       </section>
 
@@ -215,7 +218,7 @@
             <div id="statLives" class="flex gap-1"></div>
           </div>
 
-          <!-- timer badge (visual only for now) -->
+          <!-- timer badge (visual only) -->
           <div class="badge rounded-2xl px-3 py-2 flex items-center gap-2">
             <span class="text-lg">⏱</span>
             <span class="font-black" id="timerLabel">15s</span>
@@ -265,11 +268,11 @@
           </div>
 
           <ul class="mt-4 space-y-2 text-sm text-[color:var(--ink)] font-semibold list-disc pl-5">
-            <li>20 questions split into 4 levels (5 each).</li>
+            <li>30 questions split into 5 levels (6 each).</li>
             <li>Correct answer: +10 points.</li>
             <li>Wrong answer: lose 1 life (you have 3).</li>
             <li>Streak bonus: every 3 correct in a row gives +5.</li>
-            <li>Level-up pops confetti. Finish all 20 to get your rank.</li>
+            <li>Level-up pops confetti. Finish all 30 to get your rank.</li>
             <li>Keyboard: A/B/C/D to answer, Enter for next.</li>
           </ul>
         </div>
@@ -277,33 +280,11 @@
     </main>
 
     <script>
-      // ---------- Audio (V3) ----------
-      // Using Pixabay sounds (as requested)
-      // Correct answer: film-special-effects-correct-156911
-      // Streak bonus: technology-correct-472358
-      // NOTE: these are page links; to make playback reliable, replace AUDIO URLs with the direct .mp3 download links.
-      // For now, we attempt to use the page URLs and gracefully fall back to beep.
-
+      // ---------- Audio (FX + BG music) ----------
       const AUDIO = {
-        // Local Canvas assets (uploaded by user)
         correct: "./correct-156911.mp3",
         streak: "./correct-472358.mp3",
       };
-
-      // Tiny audio helper
-      function playFX(kind) {
-        if (!state?.sound) return;
-        try {
-          const a = new Audio(AUDIO[kind]);
-          a.volume = 0.9;
-          a.play().catch(() => {
-            // fallback
-            beep(kind === "streak" ? "level" : "good");
-          });
-        } catch (e) {
-          beep(kind === "streak" ? "level" : "good");
-        }
-      }
 
       // ---------- Data ----------
       const QUESTIONS_PER_LEVEL = 6;
@@ -317,53 +298,45 @@
       };
 
       const QUESTIONS = [
-        // Level 1 (Acts 1-7)
+        // Level 1
         { level: 1, question: "Before Jesus ascended, what did He tell the disciples to wait for in Jerusalem?", options: { A: "More teachings", B: "The Holy Spirit", C: "Bread and wine", D: "A new king" }, answer: "B", ref: "Acts 1:4-5" },
         { level: 1, question: "Who replaced Judas as the 12th apostle?", options: { A: "Matthias", B: "Barnabas", C: "Paul", D: "Silas" }, answer: "A", ref: "Acts 1:26" },
         { level: 1, question: "What happened on the day of Pentecost?", options: { A: "Earthquake", B: "The Holy Spirit came with tongues of fire", C: "A flood", D: "Angels appeared" }, answer: "B", ref: "Acts 2:1-4" },
         { level: 1, question: "Peter’s first sermon led to how many people being added in one day?", options: { A: "70", B: "120", C: "3,000", D: "5,000" }, answer: "C", ref: "Acts 2:41" },
-        { level: 1, question: "What was the name of the couple judged for lying about their offering?", options: { A: "Aquila and Priscilla", B: "Ananias and Sapphira", C: "Felix and Drusilla", D: "Herod and Herodias" }, answer: "B", ref: "Acts 5:1-11" },
+        { level: 1, question: "What miracle did Peter and John do at the Beautiful Gate?", options: { A: "Healed a blind man", B: "Healed a lame man", C: "Raised a dead man", D: "Cast out a legion" }, answer: "B", ref: "Acts 3:1-10" },
         { level: 1, question: "Why were deacons chosen in Acts 6?", options: { A: "To lead worship", B: "To care for widows fairly", C: "To write letters", D: "To arrest criminals" }, answer: "B", ref: "Acts 6:1-6" },
-        { level: 1, question: "Who was the first Christian martyr?", options: { A: "James", B: "Stephen", C: "Peter", D: "Philip" }, answer: "B", ref: "Acts 7:54-60" },
 
-        // Level 2 (Acts 8-12)
-        { level: 2, question: "Who met Jesus on the road to Damascus and became an apostle?", options: { A: "Saul", B: "Apollos", C: "Timothy", D: "Mark" }, answer: "A", ref: "Acts 9:1-6" },
-        { level: 2, question: "What did Peter see in a vision that taught him God accepts Gentiles?", options: { A: "A burning bush", B: "A great sheet with animals", C: "A golden crown", D: "A splitting sea" }, answer: "B", ref: "Acts 10:11-16" },
-        { level: 2, question: "What happened when Peter was in prison and the church prayed?", options: { A: "He escaped by fighting", B: "An angel freed him", C: "He was executed", D: "He bribed guards" }, answer: "B", ref: "Acts 12:6-11" },
+        // Level 2
+        { level: 2, question: "Who was the first Christian martyr?", options: { A: "James", B: "Stephen", C: "Peter", D: "Philip" }, answer: "B", ref: "Acts 7:54-60" },
         { level: 2, question: "Who preached in Samaria and many believed?", options: { A: "Philip", B: "Thomas", C: "Andrew", D: "Matthew" }, answer: "A", ref: "Acts 8:5-8" },
         { level: 2, question: "Who was baptized after reading Isaiah with Philip?", options: { A: "A Roman soldier", B: "An Ethiopian eunuch", C: "A synagogue ruler", D: "A tax collector" }, answer: "B", ref: "Acts 8:26-39" },
-        { level: 2, question: "Who was struck down by an angel and eaten by worms?", options: { A: "Felix", B: "Herod Agrippa", C: "Festus", D: "Pilate" }, answer: "B", ref: "Acts 12:23" },
-        { level: 2, question: "What was Saul’s new mission after his conversion?", options: { A: "To destroy churches", B: "To preach Christ", C: "To become a priest", D: "To return to Egypt" }, answer: "B", ref: "Acts 9:20-22" },
+        { level: 2, question: "Who met Jesus on the road to Damascus and became an apostle?", options: { A: "Saul", B: "Apollos", C: "Timothy", D: "Mark" }, answer: "A", ref: "Acts 9:1-6" },
         { level: 2, question: "Who was raised from the dead by Peter in Joppa?", options: { A: "Tabitha (Dorcas)", B: "Mary Magdalene", C: "Jezebel", D: "Martha" }, answer: "A", ref: "Acts 9:36-41" },
+        { level: 2, question: "Who was the centurion whose household received the Holy Spirit?", options: { A: "Cornelius", B: "Julius", C: "Longinus", D: "Tertullus" }, answer: "A", ref: "Acts 10:1-2" },
 
-        // Level 3 (Acts 13-20)
+        // Level 3
         { level: 3, question: "Who went with Paul on his first missionary journey?", options: { A: "Silas", B: "Barnabas", C: "Luke", D: "Peter" }, answer: "B", ref: "Acts 13:2-3" },
         { level: 3, question: "What was the main debate at the Jerusalem Council (Acts 15)?", options: { A: "Should believers keep the Sabbath?", B: "Should Gentiles be circumcised to be saved?", C: "Should Rome be resisted?", D: "Should the church build temples?" }, answer: "B", ref: "Acts 15:1-11" },
+        { level: 3, question: "In Philippi, who was the first convert mentioned, a seller of purple?", options: { A: "Lydia", B: "Dorcas", C: "Priscilla", D: "Drusilla" }, answer: "A", ref: "Acts 16:14-15" },
         { level: 3, question: "In Philippi, Paul and Silas sang hymns in prison. What happened next?", options: { A: "Fire came down", B: "An earthquake opened the doors", C: "The guards ran away", D: "Paul fainted" }, answer: "B", ref: "Acts 16:25-26" },
         { level: 3, question: "At Athens, where did Paul preach about the 'Unknown God'?", options: { A: "The Temple", B: "The marketplace only", C: "The Areopagus", D: "A prison courtyard" }, answer: "C", ref: "Acts 17:22-23" },
-        { level: 3, question: "Who was the young man who fell from a window but was revived by Paul?", options: { A: "Titus", B: "Eutychus", C: "Onesimus", D: "Simeon" }, answer: "B", ref: "Acts 20:9-10" },
-        { level: 3, question: "In Lystra, the crowd thought Paul and Barnabas were which gods?", options: { A: "Zeus and Hermes", B: "Ra and Osiris", C: "Apollo and Artemis", D: "Baal and Asherah" }, answer: "A", ref: "Acts 14:11-12" },
-        { level: 3, question: "Who was Paul’s young helper with a Greek father and Jewish mother?", options: { A: "Timothy", B: "Apollos", C: "Barnabas", D: "John" }, answer: "A", ref: "Acts 16:1-3" },
-        { level: 3, question: "In Ephesus, people burned what after turning from sin?", options: { A: "Their clothes", B: "Their magic books", C: "Their fishing nets", D: "Their scrolls of law" }, answer: "B", ref: "Acts 19:19" },
-
-        // Level 4 (Acts 21-28)
-        { level: 4, question: "Why was Paul arrested in Jerusalem?", options: { A: "He stole money", B: "He was accused of defiling the temple", C: "He attacked a soldier", D: "He refused to pay taxes" }, answer: "B", ref: "Acts 21:27-36" },
-        { level: 4, question: "Paul said he was on trial because of hope in what doctrine?", options: { A: "Prosperity", B: "Resurrection of the dead", C: "Angels", D: "The law of Moses" }, answer: "B", ref: "Acts 23:6" },
-        { level: 4, question: "When Paul was shipwrecked, which island did they land on?", options: { A: "Patmos", B: "Cyprus", C: "Malta", D: "Crete" }, answer: "C", ref: "Acts 28:1" },
-        { level: 4, question: "On Malta, what happened to Paul when a viper bit him?", options: { A: "He died instantly", B: "His hand swelled badly", C: "Nothing happened", D: "He became blind" }, answer: "C", ref: "Acts 28:3-6" },
-        { level: 4, question: "How does the book of Acts end (final setting)?", options: { A: "Paul in a palace", B: "Paul in prison in Jerusalem", C: "Paul preaching in Rome under house arrest", D: "Peter ruling the church" }, answer: "C", ref: "Acts 28:30-31" },
-        { level: 4, question: "Who did Paul appeal to when he said, 'I appeal to Caesar'?", options: { A: "Herod", B: "Festus", C: "Pilate", D: "Caiaphas" }, answer: "B", ref: "Acts 25:11-12" },
-        { level: 4, question: "Who trembled when Paul spoke about righteousness and judgment to come?", options: { A: "Felix", B: "Cornelius", C: "Stephen", D: "Gamaliel" }, answer: "A", ref: "Acts 24:24-25" },
-        { level: 4, question: "When Paul was bitten by the viper, what did the islanders expect?", options: { A: "He would become rich", B: "He would swell up and die", C: "He would laugh", D: "He would lose his voice" }, answer: "B", ref: "Acts 28:6" },
-
-        // Bonus questions (to make 30)
-        { level: 2, question: "What was the name of the man who lied about his gift and was rebuked by Peter?", options: { A: "Simon the sorcerer", B: "Alexander", C: "Demas", D: "Eli" }, answer: "A", ref: "Acts 8:18-23" },
-        { level: 3, question: "Who was the businesswoman in Philippi who hosted Paul and was baptized?", options: { A: "Lydia", B: "Priscilla", C: "Phoebe", D: "Esther" }, answer: "A", ref: "Acts 16:14-15" },
-        { level: 4, question: "In Rome, Paul lived for how long preaching under house arrest?", options: { A: "7 days", B: "40 days", C: "2 years", D: "10 years" }, answer: "C", ref: "Acts 28:30" },
-        { level: 1, question: "What miracle did Peter and John do at the Beautiful Gate?", options: { A: "Healed a blind man", B: "Healed a lame man", C: "Raised a dead man", D: "Cast out a legion" }, answer: "B", ref: "Acts 3:1-10" },
-        { level: 2, question: "Who was the centurion whose household received the Holy Spirit?", options: { A: "Cornelius", B: "Julius", C: "Longinus", D: "Tertullus" }, answer: "A", ref: "Acts 10:1-2" },
         { level: 3, question: "In Acts 18, who explained the way of God more accurately to Apollos?", options: { A: "Aquila and Priscilla", B: "James and John", C: "Peter and Andrew", D: "Philip and Stephen" }, answer: "A", ref: "Acts 18:26" },
+
+        // Level 4
+        { level: 4, question: "In Ephesus, people burned what after turning from sin?", options: { A: "Their clothes", B: "Their magic books", C: "Their fishing nets", D: "Their scrolls of law" }, answer: "B", ref: "Acts 19:19" },
+        { level: 4, question: "Who was the young man who fell from a window but was revived by Paul?", options: { A: "Titus", B: "Eutychus", C: "Onesimus", D: "Simeon" }, answer: "B", ref: "Acts 20:9-10" },
+        { level: 4, question: "Why was Paul arrested in Jerusalem?", options: { A: "He stole money", B: "He was accused of defiling the temple", C: "He attacked a soldier", D: "He refused to pay taxes" }, answer: "B", ref: "Acts 21:27-36" },
         { level: 4, question: "What was Paul’s citizenship that protected him from being beaten unlawfully?", options: { A: "Greek", B: "Roman", C: "Egyptian", D: "Syrian" }, answer: "B", ref: "Acts 22:25-28" },
+        { level: 4, question: "Paul said he was on trial because of hope in what doctrine?", options: { A: "Prosperity", B: "Resurrection of the dead", C: "Angels", D: "The law of Moses" }, answer: "B", ref: "Acts 23:6" },
+        { level: 4, question: "Who trembled when Paul spoke about righteousness and judgment to come?", options: { A: "Felix", B: "Cornelius", C: "Stephen", D: "Gamaliel" }, answer: "A", ref: "Acts 24:24-25" },
+
+        // Level 5
+        { level: 5, question: "To whom did Paul appeal, using his rights as a Roman citizen?", options: { A: "The Sanhedrin", B: "Caesar", C: "The high priest", D: "The centurion" }, answer: "B", ref: "Acts 25:10-12" },
+        { level: 5, question: "Which king heard Paul’s defense and said 'Almost you persuade me'?", options: { A: "Herod", B: "Agrippa", C: "Caesar", D: "Nero" }, answer: "B", ref: "Acts 26:28" },
+        { level: 5, question: "During the storm at sea, what did Paul say God promised about everyone on the ship?", options: { A: "Many would die", B: "All would be saved", C: "Only Paul would live", D: "The ship would not break" }, answer: "B", ref: "Acts 27:22-24" },
+        { level: 5, question: "After the shipwreck, which island did they land on?", options: { A: "Patmos", B: "Cyprus", C: "Malta", D: "Crete" }, answer: "C", ref: "Acts 28:1" },
+        { level: 5, question: "On Malta, what happened to Paul when a viper bit him?", options: { A: "He died instantly", B: "His hand swelled badly", C: "Nothing happened", D: "He became blind" }, answer: "C", ref: "Acts 28:3-6" },
+        { level: 5, question: "How does the book of Acts end (final setting)?", options: { A: "Paul in a palace", B: "Paul in prison in Jerusalem", C: "Paul preaching in Rome under house arrest", D: "Peter ruling the church" }, answer: "C", ref: "Acts 28:30-31" },
       ];
 
       // ---------- State ----------
@@ -376,7 +349,7 @@
           streak: 0,
           answered: false,
           finished: false,
-          sound: true,
+          sound: true,     // controls FX + BG music
           gemCount: 9999,
         };
       }
@@ -410,6 +383,7 @@
       const bestScoreMenu = el("bestScoreMenu");
       const saveStatus = el("saveStatus");
       const angelPop = el("angelPop");
+      const bgMusic = el("bgMusic");
 
       // ---------- Sound ----------
       let audioCtx;
@@ -426,6 +400,34 @@
           o.start();
           o.stop(audioCtx.currentTime + 0.12);
         } catch (_) {}
+      }
+
+      function playFX(kind) {
+        if (!state.sound) return;
+        try {
+          const a = new Audio(AUDIO[kind]);
+          a.volume = 0.9;
+          a.play().catch(() => {
+            beep(kind === "streak" ? "level" : "good");
+          });
+        } catch (e) {
+          beep(kind === "streak" ? "level" : "good");
+        }
+      }
+
+      function startBgMusic() {
+        if (!state.sound) return;
+        if (!bgMusic) return;
+        bgMusic.volume = 0.32;
+        bgMusic.play().catch(() => {
+          // Autoplay may be blocked until a click, this is fine.
+        });
+      }
+
+      function stopBgMusic() {
+        if (!bgMusic) return;
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
       }
 
       // ---------- Confetti ----------
@@ -459,17 +461,16 @@
       }
 
       // ---------- Storage / rank ----------
+      const BEST_KEY = "acts_quiz_best_v3";
+      const SAVE_KEY = "acts_quiz_save_v3";
+
       function getBestScore() {
-        return Number(localStorage.getItem("acts_quiz_best_v3") || "0");
+        return Number(localStorage.getItem(BEST_KEY) || "0");
       }
       function setBestScore(v) {
-        localStorage.setItem("acts_quiz_best_v3", String(v));
+        localStorage.setItem(BEST_KEY, String(v));
       }
 
-      const SAVE_KEY = "acts_quiz_save_v3";
-      function hasSave() {
-        return !!localStorage.getItem(SAVE_KEY);
-      }
       function readSave() {
         try {
           const raw = localStorage.getItem(SAVE_KEY);
@@ -500,16 +501,6 @@
         if (score >= 280) return "Acts Grandmaster";
         if (score >= 210) return "Kingdom Builder";
         if (score >= 140) return "Growing Disciple";
-        return "Fresh Learner";
-      }
-
-      function setBestScore(v) {
-        localStorage.setItem("acts_quiz_best_v2", String(v));
-      }
-      function calcRank(score) {
-        if (score >= 185) return "Acts Grandmaster";
-        if (score >= 140) return "Kingdom Builder";
-        if (score >= 90) return "Growing Disciple";
         return "Fresh Learner";
       }
 
@@ -560,7 +551,7 @@
       function renderQuestion() {
         const q = QUESTIONS[state.idx];
 
-        qText.textContent = q.question;
+        qText.textContent = q.question; // no "1/30" prefix here
         choices.innerHTML = "";
         feedback.classList.add("hidden");
         btnNext.classList.add("hidden");
@@ -572,7 +563,7 @@
           const btn = document.createElement("button");
           btn.className = "answer w-full rounded-2xl px-4 py-4 font-black text-lg text-left";
           btn.innerHTML = `${letter}. ${label}`;
-          btn.addEventListener("click", () => answer(letter, btn));
+          btn.addEventListener("click", () => answer(letter));
           choices.appendChild(btn);
         }
 
@@ -581,7 +572,16 @@
         renderMeta();
       }
 
-      function answer(letter, btn) {
+      function showAngelPopup() {
+        angelPop.classList.remove("hidden");
+        angelPop.classList.add("flex");
+        setTimeout(() => {
+          angelPop.classList.add("hidden");
+          angelPop.classList.remove("flex");
+        }, 900);
+      }
+
+      function answer(letter) {
         if (state.answered || state.finished) return;
 
         const q = QUESTIONS[state.idx];
@@ -596,15 +596,14 @@
 
           if (state.streak % 3 === 0) {
             state.score += 5;
-            setFeedback("good", `<div class=\"font-black\">Correct! +10</div><div class=\"mt-1\">Streak bonus: +5</div>`);
+            setFeedback("good", `<div class="font-black">Correct! +10</div><div class="mt-1">Streak bonus: +5</div>`);
             playFX("streak");
             showAngelPopup();
             popConfetti();
           } else {
-            setFeedback("good", `<div class=\"font-black\">Correct! +10</div>`);
+            setFeedback("good", `<div class="font-black">Correct! +10</div>`);
+            playFX("correct");
           }
-
-          playFX("correct");
         } else {
           state.lives -= 1;
           state.streak = 0;
@@ -612,10 +611,9 @@
           const correctText = q.options[q.answer];
           setFeedback(
             "bad",
-            `<div class=\"font-black\">Wrong. -1 life</div><div class=\"mt-1\">Correct: <span class=\"font-black\">${q.answer}. ${correctText}</span></div><div class=\"mt-2 text-xs opacity-80\">Reference: ${q.ref}</div>`
+            `<div class="font-black">Wrong. -1 life</div><div class="mt-1">Correct: <span class="font-black">${q.answer}. ${correctText}</span></div><div class="mt-2 text-xs opacity-80">Reference: ${q.ref}</div>`
           );
 
-          // shake parchment
           const card = document.getElementById("paperCard");
           card.classList.add("shake");
           setTimeout(() => card.classList.remove("shake"), 380);
@@ -671,10 +669,10 @@
         const q = QUESTIONS[Math.min(state.idx, QUESTIONS.length - 1)];
         setFeedback(
           won ? "good" : "bad",
-          `${won ? `<div class=\"font-black text-lg\">You cleared Acts Quiz Arcade!</div>` : `<div class=\"font-black text-lg\">Game over.</div>`}
-           <div class=\"mt-2\">Final score: <span class=\"font-black\">${state.score}</span></div>
-           <div class=\"mt-1\">Rank: <span class=\"font-black\">${calcRank(state.score)}</span></div>
-           <div class=\"mt-2 text-xs opacity-80\">Last reference shown: ${q.ref}</div>`
+          `${won ? `<div class="font-black text-lg">You cleared Acts Quiz Arcade!</div>` : `<div class="font-black text-lg">Game over.</div>`}
+           <div class="mt-2">Final score: <span class="font-black">${state.score}</span></div>
+           <div class="mt-1">Rank: <span class="font-black">${calcRank(state.score)}</span></div>
+           <div class="mt-2 text-xs opacity-80">Last reference shown: ${q.ref}</div>`
         );
 
         btnRestart.classList.remove("hidden");
@@ -711,6 +709,7 @@
         clearSave();
         resetRun();
         hideMenu();
+        startBgMusic(); // start BG music after user click
       }
 
       function startContinue() {
@@ -728,26 +727,17 @@
 
         renderQuestion();
         hideMenu();
-      }
-
-      function showAngelPopup() {
-        angelPop.classList.remove("hidden");
-        angelPop.classList.add("flex");
-        setTimeout(() => {
-          angelPop.classList.add("hidden");
-          angelPop.classList.remove("flex");
-        }, 900);
+        startBgMusic(); // start BG music after user click
       }
 
       // HUD events
       btnNext.addEventListener("click", next);
       btnRestart.addEventListener("click", () => {
-        // quick restart from inside the game
         clearSave();
         resetRun();
+        startBgMusic();
       });
 
-      // top-left reset button now opens the menu
       btnReset.addEventListener("click", () => {
         showMenu();
       });
@@ -756,10 +746,32 @@
       btnContinue.addEventListener("click", startContinue);
 
       btnAddGems.addEventListener("click", () => {
-        // playful little bonus
         state.gemCount += 25;
         renderMeta();
         popConfetti();
+        beep("level");
+      });
+
+      btnHow.addEventListener("click", () => {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      });
+      btnClose.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      });
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+        }
+      });
+
+      btnSound.addEventListener("click", () => {
+        state.sound = !state.sound;
+        btnSound.textContent = state.sound ? "Sound: On" : "Sound: Off";
+        if (state.sound) startBgMusic();
+        else stopBgMusic();
         beep("level");
       });
 
@@ -781,11 +793,7 @@
       state = freshState();
       bestScoreEl.textContent = String(getBestScore());
       bestScoreMenu.textContent = String(getBestScore());
-
-      // If there is a save, keep Continue enabled
       showMenu();
-
-      // pre-render a question so Continue feels instant
       renderQuestion();
     </script>
   </body>
