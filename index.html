@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acts Quiz Arcade V2</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      :root{
+        --ink:#4a2a14;
+        --paper:#f6d9a6;
+        --paper2:#f3c98a;
+        --leather:#8b4f2a;
+        --leather2:#6f3b1f;
+        --gold:#ffcf4a;
+        --gold2:#ffb229;
+        --cream:#fff2d1;
+      }
+
+      /* soft game bg */
+      .bg-art {
+        background:
+          radial-gradient(1200px 700px at 30% 10%, rgba(255, 223, 127, 0.35), transparent 60%),
+          radial-gradient(900px 600px at 80% 30%, rgba(255, 128, 200, 0.18), transparent 55%),
+          radial-gradient(900px 700px at 20% 75%, rgba(80, 220, 255, 0.18), transparent 55%),
+          linear-gradient(180deg, #f2e5c8, #e8d4aa);
+      }
+
+      /* top HUD pill shadow */
+      .hud {
+        box-shadow: 0 10px 18px rgba(0,0,0,0.25);
+      }
+
+      /* parchment */
+      .paper {
+        background: linear-gradient(180deg, var(--paper), var(--paper2));
+        box-shadow: 0 14px 28px rgba(0,0,0,0.25);
+        border: 2px solid rgba(124,72,34,0.25);
+      }
+
+      /* leather base */
+      .leather {
+        background: linear-gradient(180deg, var(--leather), var(--leather2));
+        border: 2px solid rgba(255,255,255,0.12);
+        box-shadow: inset 0 0 0 2px rgba(0,0,0,0.08), 0 14px 28px rgba(0,0,0,0.25);
+      }
+
+      .stitch {
+        border: 2px dashed rgba(255,255,255,0.18);
+      }
+
+      /* answer buttons */
+      .answer {
+        background: linear-gradient(180deg, var(--gold), var(--gold2));
+        border: 2px solid rgba(90, 40, 10, 0.25);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.65), 0 10px 0 rgba(0,0,0,0.15);
+        color: var(--ink);
+      }
+      .answer:hover { filter: brightness(1.02); }
+      .answer:active { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.55), 0 8px 0 rgba(0,0,0,0.15); }
+      .answer[disabled]{ opacity: 0.75; filter: saturate(0.9); }
+
+      .badge {
+        background: linear-gradient(180deg, #ffe7a8, #ffd066);
+        border: 2px solid rgba(90,40,10,0.22);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.65), 0 8px 14px rgba(0,0,0,0.18);
+        color: var(--ink);
+      }
+
+      .iconbtn {
+        background: linear-gradient(180deg, #ffcf4a, #ffae2a);
+        border: 2px solid rgba(90,40,10,0.22);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.65), 0 10px 0 rgba(0,0,0,0.14);
+      }
+      .iconbtn:active{ transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.55), 0 8px 0 rgba(0,0,0,0.14); }
+
+      /* progress bar */
+      .track {
+        background: linear-gradient(180deg, #a0602f, #804620);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.18);
+        border: 2px solid rgba(90,40,10,0.18);
+      }
+      .trackFill {
+        background: linear-gradient(180deg, #ffd86b, #ffb836);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.35);
+      }
+
+      .confetti {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 50;
+      }
+      .confetti i {
+        position: absolute;
+        width: 10px;
+        height: 18px;
+        opacity: 0.9;
+        transform: translateY(-20px) rotate(0deg);
+        animation: fall 900ms linear forwards;
+        border-radius: 3px;
+      }
+      @keyframes fall {
+        to { transform: translateY(110vh) rotate(360deg); opacity: 1; }
+      }
+
+      .shake { animation: shake 0.35s ease-in-out; }
+      @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-6px); }
+        50% { transform: translateX(6px); }
+        75% { transform: translateX(-4px); }
+        100% { transform: translateX(0); }
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen bg-art">
+    <div id="confetti" class="confetti hidden"></div>
+
+    <main class="mx-auto max-w-md px-4 py-6">
+      <!-- HUD -->
+      <header class="hud flex items-center justify-between rounded-2xl bg-white/30 backdrop-blur-sm px-3 py-2 border border-white/30">
+        <div class="flex items-center gap-2">
+          <div class="grid h-9 w-9 place-items-center rounded-xl bg-cyan-300/90 border border-white/40 shadow">
+            <span class="text-xl">💎</span>
+          </div>
+          <div class="badge rounded-xl px-3 py-2 font-extrabold leading-none">
+            <span id="gemCount">9999</span>
+          </div>
+          <button id="btnAddGems" class="iconbtn grid h-9 w-9 place-items-center rounded-xl" title="Bonus">
+            <span class="text-lg">＋</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btnReset" class="iconbtn grid h-9 w-9 place-items-center rounded-xl" title="Restart">
+            <span class="text-lg">↩</span>
+          </button>
+          <button id="btnHow" class="iconbtn grid h-9 w-9 place-items-center rounded-xl" title="How to play">
+            <span class="text-lg">⚙</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Progress track like the reference -->
+      <section class="mt-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">⭐</span>
+          <div class="track relative h-4 flex-1 rounded-full overflow-hidden">
+            <div id="progressFill" class="trackFill absolute left-0 top-0 h-full w-0"></div>
+          </div>
+          <span class="text-2xl">⭐</span>
+        </div>
+        <div class="mt-2 flex items-center justify-between text-sm text-[color:var(--ink)] font-extrabold">
+          <span id="statLevelName">New Fire (Acts 1-5)</span>
+          <span id="statProgress">1/20</span>
+        </div>
+      </section>
+
+      <!-- Question parchment -->
+      <section id="paperCard" class="paper mt-4 rounded-3xl px-5 py-6">
+        <div class="text-[color:var(--ink)]">
+          <p class="text-3xl font-black leading-tight" id="qText">Loading...</p>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <!-- hearts -->
+          <div class="flex items-center gap-2">
+            <div id="statLives" class="flex gap-1"></div>
+          </div>
+
+          <!-- timer badge (visual only for now) -->
+          <div class="badge rounded-2xl px-3 py-2 flex items-center gap-2">
+            <span class="text-lg">⏱</span>
+            <span class="font-black" id="timerLabel">15s</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Answers leather board -->
+      <section id="board" class="leather mt-4 rounded-3xl p-4">
+        <div class="stitch rounded-2xl p-3">
+          <div id="choices" class="grid gap-3"></div>
+        </div>
+
+        <div id="feedback" class="mt-4 hidden rounded-2xl px-4 py-3 text-sm"></div>
+
+        <div class="mt-4 flex items-center gap-2">
+          <button id="btnNext" class="hidden answer w-full rounded-2xl px-4 py-3 font-black text-lg">Next</button>
+          <button id="btnRestart" class="hidden answer w-full rounded-2xl px-4 py-3 font-black text-lg">Play again</button>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between">
+          <div class="badge rounded-2xl px-3 py-2">
+            <span class="font-black">Score:</span> <span id="statScore" class="font-black">0</span>
+            <span class="opacity-70"> | </span>
+            <span class="font-black">Streak:</span> <span id="statStreak" class="font-black">0</span>
+          </div>
+
+          <button id="btnSound" class="badge rounded-2xl px-3 py-2 font-black">Sound: On</button>
+        </div>
+
+        <div class="mt-3 text-xs text-white/75">
+          <span class="font-semibold">Best:</span> <span id="bestScore">0</span>
+          <span class="opacity-70"> | </span>
+          <span class="font-semibold">Rank:</span> <span id="rank">Fresh Learner</span>
+        </div>
+      </section>
+
+      <!-- Modal -->
+      <div id="modal" class="fixed inset-0 hidden items-center justify-center bg-black/60 p-4 z-40">
+        <div class="paper w-full max-w-lg rounded-3xl p-5">
+          <div class="flex items-start justify-between gap-3 text-[color:var(--ink)]">
+            <div>
+              <h3 class="text-lg font-black">How to play</h3>
+              <p class="text-sm opacity-80 mt-1">Quick rules so you can start fast.</p>
+            </div>
+            <button id="btnClose" class="badge rounded-xl px-3 py-2 font-black">Close</button>
+          </div>
+
+          <ul class="mt-4 space-y-2 text-sm text-[color:var(--ink)] font-semibold list-disc pl-5">
+            <li>20 questions split into 4 levels (5 each).</li>
+            <li>Correct answer: +10 points.</li>
+            <li>Wrong answer: lose 1 life (you have 3).</li>
+            <li>Streak bonus: every 3 correct in a row gives +5.</li>
+            <li>Level-up pops confetti. Finish all 20 to get your rank.</li>
+            <li>Keyboard: A/B/C/D to answer, Enter for next.</li>
+          </ul>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // ---------- Audio (V3) ----------
+      // Using Pixabay sounds (as requested)
+      // Correct answer: film-special-effects-correct-156911
+      // Streak bonus: technology-correct-472358
+      // NOTE: these are page links; to make playback reliable, replace AUDIO URLs with the direct .mp3 download links.
+      // For now, we attempt to use the page URLs and gracefully fall back to beep.
+
+      const AUDIO = {
+        // Local Canvas assets (uploaded by user)
+        correct: "./correct-156911.mp3",
+        streak: "./correct-472358.mp3",
+      };
+
+      // Tiny audio helper
+      function playFX(kind) {
+        if (!state?.sound) return;
+        try {
+          const a = new Audio(AUDIO[kind]);
+          a.volume = 0.9;
+          a.play().catch(() => {
+            // fallback
+            beep(kind === "streak" ? "level" : "good");
+          });
+        } catch (e) {
+          beep(kind === "streak" ? "level" : "good");
+        }
+      }
+
+      // ---------- Data ----------
+      const LEVELS = {
+        1: { name: "New Fire (Acts 1-5)" },
+        2: { name: "The Way Spreads (Acts 6-12)" },
+        3: { name: "The Mission (Acts 13-20)" },
+        4: { name: "Chains and Courage (Acts 21-28)" }
+      };
+
+      const QUESTIONS = [
+        // Level 1
+        { level: 1, question: "1/20. Before Jesus ascended, what did He tell the disciples to wait for in Jerusalem?", options: { A: "More teachings", B: "The Holy Spirit", C: "Bread and wine", D: "A new king" }, answer: "B", ref: "Acts 1:4-5" },
+        { level: 1, question: "2/20. Who replaced Judas as the 12th apostle?", options: { A: "Matthias", B: "Barnabas", C: "Paul", D: "Silas" }, answer: "A", ref: "Acts 1:26" },
+        { level: 1, question: "3/20. What happened on the day of Pentecost?", options: { A: "Earthquake", B: "The Holy Spirit came with tongues of fire", C: "A flood", D: "Angels appeared" }, answer: "B", ref: "Acts 2:1-4" },
+        { level: 1, question: "4/20. Peter’s first sermon led to how many people being added in one day?", options: { A: "70", B: "120", C: "3,000", D: "5,000" }, answer: "C", ref: "Acts 2:41" },
+        { level: 1, question: "5/20. What was the name of the couple judged for lying about their offering?", options: { A: "Aquila and Priscilla", B: "Ananias and Sapphira", C: "Felix and Drusilla", D: "Herod and Herodias" }, answer: "B", ref: "Acts 5:1-11" },
+
+        // Level 2
+        { level: 2, question: "6/20. Why were deacons chosen in Acts 6?", options: { A: "To lead worship", B: "To care for widows fairly", C: "To write letters", D: "To arrest criminals" }, answer: "B", ref: "Acts 6:1-6" },
+        { level: 2, question: "7/20. Who was the first Christian martyr?", options: { A: "James", B: "Stephen", C: "Peter", D: "Philip" }, answer: "B", ref: "Acts 7:54-60" },
+        { level: 2, question: "8/20. Who met Jesus on the road to Damascus and became an apostle?", options: { A: "Saul", B: "Apollos", C: "Timothy", D: "Mark" }, answer: "A", ref: "Acts 9:1-6" },
+        { level: 2, question: "9/20. What did Peter see in a vision that taught him God accepts Gentiles?", options: { A: "A burning bush", B: "A great sheet with animals", C: "A golden crown", D: "A splitting sea" }, answer: "B", ref: "Acts 10:11-16" },
+        { level: 2, question: "10/20. What happened when Peter was in prison and the church prayed?", options: { A: "He escaped by fighting", B: "An angel freed him", C: "He was executed", D: "He bribed guards" }, answer: "B", ref: "Acts 12:6-11" },
+
+        // Level 3
+        { level: 3, question: "11/20. Who went with Paul on his first missionary journey?", options: { A: "Silas", B: "Barnabas", C: "Luke", D: "Peter" }, answer: "B", ref: "Acts 13:2-3" },
+        { level: 3, question: "12/20. In Philippi, Paul and Silas sang hymns in prison. What happened next?", options: { A: "Fire came down", B: "An earthquake opened the doors", C: "The guards ran away", D: "Paul fainted" }, answer: "B", ref: "Acts 16:25-26" },
+        { level: 3, question: "13/20. Who was the young man that fell asleep and fell from a window but was revived by Paul?", options: { A: "Titus", B: "Eutychus", C: "Onesimus", D: "Simeon" }, answer: "B", ref: "Acts 20:9-10" },
+        { level: 3, question: "14/20. At Athens, Paul spoke about the 'Unknown God'. Where did he preach?", options: { A: "The Temple", B: "The marketplace only", C: "The Areopagus", D: "A prison courtyard" }, answer: "C", ref: "Acts 17:22-23" },
+        { level: 3, question: "15/20. What was the main debate at the Jerusalem Council (Acts 15)?", options: { A: "Should believers keep the Sabbath?", B: "Should Gentiles be circumcised to be saved?", C: "Should Rome be resisted?", D: "Should the church build temples?" }, answer: "B", ref: "Acts 15:1-11" },
+
+        // Level 4
+        { level: 4, question: "16/20. Why was Paul arrested in Jerusalem?", options: { A: "He stole money", B: "He was accused of defiling the temple", C: "He attacked a soldier", D: "He refused to pay taxes" }, answer: "B", ref: "Acts 21:27-36" },
+        { level: 4, question: "17/20. Paul said he was on trial because of hope in what doctrine?", options: { A: "Prosperity", B: "Resurrection of the dead", C: "Angels", D: "The law of Moses" }, answer: "B", ref: "Acts 23:6" },
+        { level: 4, question: "18/20. When Paul was shipwrecked, which island did they land on?", options: { A: "Patmos", B: "Cyprus", C: "Malta", D: "Crete" }, answer: "C", ref: "Acts 28:1" },
+        { level: 4, question: "19/20. On Malta, what happened to Paul when a viper bit him?", options: { A: "He died instantly", B: "His hand swelled badly", C: "Nothing happened", D: "He became blind" }, answer: "C", ref: "Acts 28:3-6" },
+        { level: 4, question: "20/20. How does the book of Acts end (final setting)?", options: { A: "Paul in a palace", B: "Paul in prison in Jerusalem", C: "Paul preaching in Rome under house arrest", D: "Peter ruling the church" }, answer: "C", ref: "Acts 28:30-31" },
+      ];
+
+      // ---------- State ----------
+      let state;
+      function freshState() {
+        return {
+          idx: 0,
+          score: 0,
+          lives: 3,
+          streak: 0,
+          answered: false,
+          finished: false,
+          sound: true,
+          gemCount: 9999,
+        };
+      }
+
+      // ---------- DOM ----------
+      const el = (id) => document.getElementById(id);
+      const qText = el("qText");
+      const choices = el("choices");
+      const feedback = el("feedback");
+      const btnNext = el("btnNext");
+      const btnRestart = el("btnRestart");
+      const btnReset = el("btnReset");
+      const btnHow = el("btnHow");
+      const modal = el("modal");
+      const btnClose = el("btnClose");
+      const btnSound = el("btnSound");
+      const confetti = el("confetti");
+      const progressFill = el("progressFill");
+      const statProgress = el("statProgress");
+      const statLives = el("statLives");
+      const statScore = el("statScore");
+      const statStreak = el("statStreak");
+      const statLevelName = el("statLevelName");
+      const bestScoreEl = el("bestScore");
+      const rankEl = el("rank");
+      const gemCountEl = el("gemCount");
+      const btnAddGems = el("btnAddGems");
+
+      // ---------- Sound ----------
+      let audioCtx;
+      function beep(type) {
+        if (!state.sound) return;
+        try {
+          audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = "sine";
+          o.frequency.value = type === "good" ? 660 : type === "level" ? 880 : 220;
+          g.gain.value = 0.06;
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start();
+          o.stop(audioCtx.currentTime + 0.12);
+        } catch (_) {}
+      }
+
+      // ---------- Confetti ----------
+      function popConfetti() {
+        confetti.innerHTML = "";
+        confetti.classList.remove("hidden");
+
+        const colors = ["#22c55e", "#60a5fa", "#f472b6", "#fbbf24", "#a78bfa", "#34d399"];
+        const count = 80;
+
+        for (let i = 0; i < count; i++) {
+          const piece = document.createElement("i");
+          const left = Math.random() * 100;
+          const delay = Math.random() * 120;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          const w = 6 + Math.random() * 8;
+          const h = 10 + Math.random() * 14;
+
+          piece.style.left = left + "vw";
+          piece.style.top = "-20px";
+          piece.style.background = color;
+          piece.style.width = w + "px";
+          piece.style.height = h + "px";
+          piece.style.animationDelay = delay + "ms";
+          piece.style.transform = `translateY(-20px) rotate(${Math.random() * 360}deg)`;
+
+          confetti.appendChild(piece);
+        }
+
+        setTimeout(() => confetti.classList.add("hidden"), 1200);
+      }
+
+      // ---------- Storage / rank ----------
+      function getBestScore() {
+        return Number(localStorage.getItem("acts_quiz_best_v2") || "0");
+      }
+      function setBestScore(v) {
+        localStorage.setItem("acts_quiz_best_v2", String(v));
+      }
+      function calcRank(score) {
+        if (score >= 185) return "Acts Grandmaster";
+        if (score >= 140) return "Kingdom Builder";
+        if (score >= 90) return "Growing Disciple";
+        return "Fresh Learner";
+      }
+
+      // ---------- UI helpers ----------
+      function renderLives() {
+        statLives.innerHTML = "";
+        for (let i = 0; i < 3; i++) {
+          const span = document.createElement("span");
+          span.className = "text-2xl";
+          span.textContent = i < state.lives ? "❤" : "🖤";
+          statLives.appendChild(span);
+        }
+      }
+
+      function setFeedback(type, html) {
+        feedback.classList.remove("hidden");
+        feedback.className = "mt-4 rounded-2xl px-4 py-3 text-sm";
+        if (type === "good") {
+          feedback.classList.add("bg-emerald-500/20", "border", "border-emerald-200/30", "text-white");
+        } else {
+          feedback.classList.add("bg-rose-500/20", "border", "border-rose-200/30", "text-white");
+        }
+        feedback.innerHTML = html;
+      }
+
+      function lockChoices() {
+        [...choices.querySelectorAll("button")].forEach((b) => (b.disabled = true));
+      }
+
+      function renderProgress() {
+        const total = QUESTIONS.length;
+        const current = state.idx + 1;
+        const pct = Math.round(((current - 1) / total) * 100);
+        progressFill.style.width = pct + "%";
+        statProgress.textContent = `${current}/${total}`;
+      }
+
+      function renderMeta() {
+        const q = QUESTIONS[state.idx];
+        statLevelName.textContent = LEVELS[q.level].name;
+        statScore.textContent = String(state.score);
+        statStreak.textContent = String(state.streak);
+        bestScoreEl.textContent = String(getBestScore());
+        rankEl.textContent = calcRank(state.score);
+        gemCountEl.textContent = String(state.gemCount);
+      }
+
+      function renderQuestion() {
+        const q = QUESTIONS[state.idx];
+
+        qText.textContent = q.question;
+        choices.innerHTML = "";
+        feedback.classList.add("hidden");
+        btnNext.classList.add("hidden");
+        btnRestart.classList.add("hidden");
+
+        const letters = ["A", "B", "C", "D"];
+        for (const letter of letters) {
+          const label = q.options[letter];
+          const btn = document.createElement("button");
+          btn.className = "answer w-full rounded-2xl px-4 py-4 font-black text-lg text-left";
+          btn.innerHTML = `${letter}. ${label}`;
+          btn.addEventListener("click", () => answer(letter, btn));
+          choices.appendChild(btn);
+        }
+
+        renderLives();
+        renderProgress();
+        renderMeta();
+      }
+
+      function answer(letter, btn) {
+        if (state.answered || state.finished) return;
+
+        const q = QUESTIONS[state.idx];
+        state.answered = true;
+        lockChoices();
+
+        const correct = letter === q.answer;
+
+        if (correct) {
+          state.score += 10;
+          state.streak += 1;
+
+          if (state.streak % 3 === 0) {
+            state.score += 5;
+            setFeedback("good", `<div class=\"font-black\">Correct! +10</div><div class=\"mt-1\">Streak bonus: +5</div>`);
+          } else {
+            setFeedback("good", `<div class=\"font-black\">Correct! +10</div>`);
+          }
+
+          playFX("correct");
+        } else {
+          state.lives -= 1;
+          state.streak = 0;
+
+          const correctText = q.options[q.answer];
+          setFeedback(
+            "bad",
+            `<div class=\"font-black\">Wrong. -1 life</div><div class=\"mt-1\">Correct: <span class=\"font-black\">${q.answer}. ${correctText}</span></div><div class=\"mt-2 text-xs opacity-80\">Reference: ${q.ref}</div>`
+          );
+
+          // shake parchment
+          const card = document.getElementById("paperCard");
+          card.classList.add("shake");
+          setTimeout(() => card.classList.remove("shake"), 380);
+
+          beep("bad");
+        }
+
+        renderLives();
+        renderMeta();
+
+        if (state.lives <= 0) {
+          endGame(false);
+          return;
+        }
+
+        // Level-up confetti after Q5/Q10/Q15
+        const nextIdx = state.idx + 1;
+        if (nextIdx % 5 === 0 && nextIdx < QUESTIONS.length) {
+          playFX("streak");
+          popConfetti();
+        }
+
+        btnNext.classList.remove("hidden");
+      }
+
+      function next() {
+        if (!state.answered || state.finished) return;
+
+        state.idx += 1;
+        state.answered = false;
+
+        if (state.idx >= QUESTIONS.length) {
+          endGame(true);
+          return;
+        }
+
+        renderQuestion();
+      }
+
+      function endGame(won) {
+        state.finished = true;
+        btnNext.classList.add("hidden");
+        choices.innerHTML = "";
+
+        const best = getBestScore();
+        if (state.score > best) setBestScore(state.score);
+
+        renderMeta();
+
+        const q = QUESTIONS[Math.min(state.idx, QUESTIONS.length - 1)];
+        setFeedback(
+          won ? "good" : "bad",
+          `${won ? `<div class=\"font-black text-lg\">You cleared Acts Quiz Arcade!</div>` : `<div class=\"font-black text-lg\">Game over.</div>`}
+           <div class=\"mt-2\">Final score: <span class=\"font-black\">${state.score}</span></div>
+           <div class=\"mt-1\">Rank: <span class=\"font-black\">${calcRank(state.score)}</span></div>
+           <div class=\"mt-2 text-xs opacity-80\">Last reference shown: ${q.ref}</div>`
+        );
+
+        btnRestart.classList.remove("hidden");
+        popConfetti();
+      }
+
+      function resetRun() {
+        state = freshState();
+        btnSound.textContent = "Sound: On";
+        renderQuestion();
+      }
+
+      // HUD events
+      btnNext.addEventListener("click", next);
+      btnRestart.addEventListener("click", resetRun);
+      btnReset.addEventListener("click", resetRun);
+
+      btnHow.addEventListener("click", () => {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      });
+      btnClose.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      });
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+        }
+      });
+
+      btnSound.addEventListener("click", () => {
+        state.sound = !state.sound;
+        btnSound.textContent = state.sound ? "Sound: On" : "Sound: Off";
+        beep("level");
+      });
+
+      btnAddGems.addEventListener("click", () => {
+        // playful little bonus
+        state.gemCount += 25;
+        renderMeta();
+        popConfetti();
+        beep("level");
+      });
+
+      // Keyboard: A/B/C/D + Enter for next
+      window.addEventListener("keydown", (e) => {
+        const k = e.key.toUpperCase();
+        if (state.finished) return;
+
+        if (!state.answered && ["A","B","C","D"].includes(k)) {
+          const btns = [...choices.querySelectorAll("button")];
+          const idx = ["A","B","C","D"].indexOf(k);
+          if (btns[idx]) btns[idx].click();
+        } else if (state.answered && (e.key === "Enter" || e.key === " ")) {
+          btnNext.click();
+        }
+      });
+
+      // Start
+      state = freshState();
+      bestScoreEl.textContent = String(getBestScore());
+      renderQuestion();
+    </script>
+  </body>
+</html>
