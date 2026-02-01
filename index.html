@@ -115,6 +115,13 @@
         75% { transform: translateX(-4px); }
         100% { transform: translateX(0); }
       }
+
+      /* Streak popup animation */
+      .pop-in { animation: popIn 180ms ease-out both; }
+      @keyframes popIn {
+        from { transform: scale(0.96); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
     </style>
   </head>
 
@@ -157,13 +164,14 @@
       </div>
     </div>
 
-    <!-- Angel popup -->
-    <div id="angelPop" class="fixed inset-0 z-40 hidden items-center justify-center p-4">
-      <div class="paper max-w-sm w-full rounded-3xl p-5 text-center text-[color:var(--ink)]">
-        <div class="text-5xl">😇</div>
-        <div class="mt-2 text-xl font-black">Streak bonus!</div>
-        <div class="mt-1 text-sm font-semibold opacity-80">Keep going.</div>
-      </div>
+    <!-- Streak popup (tap anywhere to continue) -->
+    <div id="streakPop" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/40 p-4">
+      <img
+        id="streakPopImg"
+        src="./streak_popup_transparent.png"
+        alt="Streak bonus"
+        class="pop-in w-full max-w-sm rounded-3xl shadow-2xl active:scale-[0.99] transition"
+      />
     </div>
 
     <main class="mx-auto max-w-md px-4 py-6">
@@ -382,8 +390,11 @@
       const btnContinue = el("btnContinue");
       const bestScoreMenu = el("bestScoreMenu");
       const saveStatus = el("saveStatus");
-      const angelPop = el("angelPop");
       const bgMusic = el("bgMusic");
+
+      // Streak popup
+      const streakPop = el("streakPop");
+      const streakPopImg = el("streakPopImg");
 
       // ---------- Sound ----------
       let audioCtx;
@@ -572,14 +583,24 @@
         renderMeta();
       }
 
-      function showAngelPopup() {
-        angelPop.classList.remove("hidden");
-        angelPop.classList.add("flex");
-        setTimeout(() => {
-          angelPop.classList.add("hidden");
-          angelPop.classList.remove("flex");
-        }, 900);
+      // ---------- Streak popup ----------
+      function showStreakPopup() {
+        // replay pop animation
+        streakPopImg.classList.remove("pop-in");
+        void streakPopImg.offsetWidth;
+        streakPopImg.classList.add("pop-in");
+
+        streakPop.classList.remove("hidden");
+        streakPop.classList.add("flex");
       }
+
+      function hideStreakPopup() {
+        streakPop.classList.add("hidden");
+        streakPop.classList.remove("flex");
+      }
+
+      streakPop.addEventListener("click", hideStreakPopup);
+      streakPopImg.addEventListener("click", hideStreakPopup);
 
       function answer(letter) {
         if (state.answered || state.finished) return;
@@ -598,7 +619,7 @@
             state.score += 5;
             setFeedback("good", `<div class="font-black">Correct! +10</div><div class="mt-1">Streak bonus: +5</div>`);
             playFX("streak");
-            showAngelPopup();
+            showStreakPopup();
             popConfetti();
           } else {
             setFeedback("good", `<div class="font-black">Correct! +10</div>`);
@@ -779,6 +800,12 @@
       window.addEventListener("keydown", (e) => {
         const k = e.key.toUpperCase();
         if (state.finished) return;
+
+        // If popup is open, any key closes it
+        if (streakPop.classList.contains("flex")) {
+          hideStreakPopup();
+          return;
+        }
 
         if (!state.answered && ["A","B","C","D"].includes(k)) {
           const btns = [...choices.querySelectorAll("button")];
