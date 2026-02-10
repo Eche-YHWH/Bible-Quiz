@@ -25,3 +25,9 @@ audio.bindUnlock(document);
 const confetti = createConfetti(document.getElementById("confetti"));
 
 initUI({ store, audio, confetti, storage, initialBook });
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}

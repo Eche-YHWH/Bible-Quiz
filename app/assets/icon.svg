@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6d9a6" />
+      <stop offset="1" stop-color="#f3c98a" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffcf4a" />
+      <stop offset="1" stop-color="#ffb229" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="url(#bg)" />
+  <rect x="64" y="64" width="384" height="384" rx="80" fill="#8b4f2a" opacity="0.18" />
+  <circle cx="256" cy="206" r="96" fill="url(#gold)" stroke="#7b4a20" stroke-width="8" />
+  <path d="M220 212h72" stroke="#7b4a20" stroke-width="14" stroke-linecap="round" />
+  <path d="M256 176v72" stroke="#7b4a20" stroke-width="14" stroke-linecap="round" />
+  <text x="256" y="360" text-anchor="middle" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="64" font-weight="900" fill="#4a2a14">Acts</text>
+</svg>
