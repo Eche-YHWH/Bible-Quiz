@@ -122,6 +122,75 @@
         from { transform: scale(0.96); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
       }
+
+      /* Book map */
+      .book-map {
+        position: relative;
+        height: 420px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #f9e7c5, #f0c786);
+        border: 2px solid rgba(124,72,34,0.25);
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25), 0 10px 18px rgba(0,0,0,0.15);
+        overflow: hidden;
+      }
+      .book-map::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          radial-gradient(circle at 15% 20%, rgba(255,255,255,0.35) 0 3px, transparent 4px),
+          radial-gradient(circle at 70% 25%, rgba(255,255,255,0.3) 0 2px, transparent 3px),
+          radial-gradient(circle at 35% 55%, rgba(255,255,255,0.3) 0 2px, transparent 3px),
+          radial-gradient(circle at 75% 70%, rgba(255,255,255,0.3) 0 2px, transparent 3px),
+          radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0 2px, transparent 3px);
+        opacity: 0.6;
+        pointer-events: none;
+      }
+      .map-path {
+        position: absolute;
+        inset: 0;
+      }
+      .map-path path {
+        stroke: rgba(206, 139, 82, 0.9);
+        stroke-width: 7;
+        fill: none;
+        stroke-linecap: round;
+        filter: drop-shadow(0 2px 0 rgba(255,255,255,0.35));
+      }
+      .book-node-wrap {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        width: 92px;
+        z-index: 2;
+      }
+      .book-node {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #fff7dc, #ffd7a5);
+        border: 3px solid rgba(120,70,30,0.28);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), 0 8px 0 rgba(0,0,0,0.12);
+        color: var(--ink);
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+      }
+      .book-node:hover { filter: brightness(1.03); transform: translateY(-1px); }
+      .book-node:active { transform: translateY(1px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), 0 6px 0 rgba(0,0,0,0.12); }
+      .book-node.active {
+        outline: 3px solid rgba(255, 200, 60, 0.65);
+        box-shadow: 0 0 0 4px rgba(255, 207, 74, 0.4), inset 0 2px 0 rgba(255,255,255,0.7), 0 8px 0 rgba(0,0,0,0.12);
+      }
+      .book-label {
+        margin-top: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+      }
     </style>
   </head>
 
@@ -161,6 +230,31 @@
         <p class="mt-4 text-xs font-semibold opacity-75">
           Tip: Keep a streak. Every 3 correct gives a bonus.
         </p>
+      </div>
+    </div>
+
+    <!-- Book Map -->
+    <div id="bookMap" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/50 p-4">
+      <div class="paper w-full max-w-md rounded-3xl p-5 text-[color:var(--ink)]">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-black">Bible Book Map</h2>
+            <p class="mt-1 text-sm font-semibold opacity-80">Pick a book to start.</p>
+          </div>
+          <button id="btnCloseMap" class="badge rounded-xl px-3 py-2 font-black">Back</button>
+        </div>
+
+        <div class="mt-4 book-map">
+          <svg class="map-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M10 15 C 30 5, 45 25, 70 20 S 95 30, 85 40 C 75 52, 55 45, 45 60 S 30 75, 22 80 S 40 92, 72 88" />
+          </svg>
+          <div id="bookNodes" class="absolute inset-0"></div>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between text-xs font-semibold opacity-80">
+          <span id="mapHint">Tap a book to begin.</span>
+          <span id="selectedBookLabel" class="font-black"></span>
+        </div>
       </div>
     </div>
 
@@ -209,9 +303,10 @@
           <span class="text-2xl">⭐</span>
         </div>
         <div class="mt-2 flex items-center justify-between text-sm text-[color:var(--ink)] font-extrabold">
-          <span id="statLevelName">New Fire</span>
+          <span id="statBookName">Acts</span>
           <span id="statProgress">1/30</span>
         </div>
+        <div id="statLevelName" class="mt-1 text-xs font-semibold text-[color:var(--ink)] opacity-80">New Fire</div>
       </section>
 
       <!-- Question parchment -->
@@ -276,11 +371,11 @@
           </div>
 
           <ul class="mt-4 space-y-2 text-sm text-[color:var(--ink)] font-semibold list-disc pl-5">
-            <li>30 questions split into 5 levels (6 each).</li>
+            <li>Questions are split into levels (6 each). Total varies by book.</li>
             <li>Correct answer: +10 points.</li>
             <li>Wrong answer: lose 1 life (you have 3).</li>
             <li>Streak bonus: every 3 correct in a row gives +5.</li>
-            <li>Level-up pops confetti. Finish all 30 to get your rank.</li>
+            <li>Level-up pops confetti. Finish all questions to get your rank.</li>
             <li>Keyboard: A/B/C/D to answer, Enter for next.</li>
           </ul>
         </div>
@@ -347,6 +442,106 @@
         { level: 5, question: "How does the book of Acts end (final setting)?", options: { A: "Paul in a palace", B: "Paul in prison in Jerusalem", C: "Paul preaching in Rome under house arrest", D: "Peter ruling the church" }, answer: "C", ref: "Acts 28:30-31" },
       ];
 
+      const BOOKS = {
+        acts: { title: "Acts", short: "Acts", pos: { x: 40, y: 78 }, levels: LEVELS, questions: QUESTIONS },
+        genesis: {
+          title: "Genesis",
+          short: "Gen",
+          pos: { x: 12, y: 18 },
+          questions: [
+            { question: "On which day did God create the sun, moon, and stars?", options: { A: "Day 1", B: "Day 2", C: "Day 3", D: "Day 4" }, answer: "D", ref: "Genesis 1:14-19" },
+            { question: "Who was the first man created by God?", options: { A: "Noah", B: "Adam", C: "Abraham", D: "Jacob" }, answer: "B", ref: "Genesis 2:7" },
+            { question: "What was the name of Abraham's wife?", options: { A: "Rebekah", B: "Rachel", C: "Sarah", D: "Leah" }, answer: "C", ref: "Genesis 17:15" },
+            { question: "What sign did God give Noah that He would never again destroy the earth by flood?", options: { A: "Rainbow", B: "Dove", C: "Olive branch", D: "Ark" }, answer: "A", ref: "Genesis 9:13" },
+            { question: "Jacob dreamed of a ladder reaching to heaven. What place did he name?", options: { A: "Beersheba", B: "Bethel", C: "Hebron", D: "Shechem" }, answer: "B", ref: "Genesis 28:12-19" },
+            { question: "Who was sold into slavery by his brothers?", options: { A: "Joseph", B: "Benjamin", C: "Esau", D: "Isaac" }, answer: "A", ref: "Genesis 37:28" },
+          ],
+        },
+        exodus: {
+          title: "Exodus",
+          short: "Exo",
+          pos: { x: 70, y: 22 },
+          questions: [
+            { question: "What did Moses see that burned but was not consumed?", options: { A: "Burning bush", B: "Pillar of cloud", C: "Golden calf", D: "Mount Sinai" }, answer: "A", ref: "Exodus 3:2" },
+            { question: "What was the first plague on Egypt?", options: { A: "Frogs", B: "Water turned to blood", C: "Darkness", D: "Locusts" }, answer: "B", ref: "Exodus 7:20" },
+            { question: "Who was Moses' brother and spokesman?", options: { A: "Aaron", B: "Joshua", C: "Caleb", D: "Miriam" }, answer: "A", ref: "Exodus 4:14-16" },
+            { question: "What did God give Moses on Mount Sinai?", options: { A: "Ark plans", B: "Ten Commandments", C: "Manna", D: "A new staff" }, answer: "B", ref: "Exodus 20:1-17" },
+            { question: "What was the bread-like food God provided in the wilderness?", options: { A: "Quail", B: "Manna", C: "Figs", D: "Barley" }, answer: "B", ref: "Exodus 16:15" },
+            { question: "What sea did the Israelites cross when leaving Egypt?", options: { A: "Sea of Galilee", B: "Red Sea", C: "Dead Sea", D: "Mediterranean Sea" }, answer: "B", ref: "Exodus 14:21-22" },
+          ],
+        },
+        psalms: {
+          title: "Psalms",
+          short: "Psa",
+          pos: { x: 30, y: 46 },
+          questions: [
+            { question: "\"The Lord is my shepherd; I shall not want\" is from which Psalm?", options: { A: "Psalm 1", B: "Psalm 19", C: "Psalm 23", D: "Psalm 100" }, answer: "C", ref: "Psalm 23:1" },
+            { question: "Psalm 19 says the heavens declare the ___ of God.", options: { A: "power", B: "mercy", C: "glory", D: "law" }, answer: "C", ref: "Psalm 19:1" },
+            { question: "Psalm 46 says, \"Be still, and know that I am ___.\"", options: { A: "king", B: "God", C: "holy", D: "love" }, answer: "B", ref: "Psalm 46:10" },
+            { question: "Psalm 100 says, \"Enter his gates with ___.\"", options: { A: "fear", B: "thanksgiving", C: "silence", D: "offerings" }, answer: "B", ref: "Psalm 100:4" },
+            { question: "Psalm 119 says God's word is a lamp to my ___.", options: { A: "hands", B: "feet", C: "ears", D: "eyes" }, answer: "B", ref: "Psalm 119:105" },
+            { question: "Psalm 150 says to praise God with the sound of the ___.", options: { A: "trumpet", B: "harp", C: "tambourine", D: "cymbals" }, answer: "A", ref: "Psalm 150:3" },
+          ],
+        },
+        john: {
+          title: "John",
+          short: "John",
+          pos: { x: 72, y: 56 },
+          questions: [
+            { question: "John 1:1 says the Word was with God, and the Word was ___.", options: { A: "Light", B: "God", C: "Spirit", D: "Life" }, answer: "B", ref: "John 1:1" },
+            { question: "What was Jesus' first miracle in John?", options: { A: "Healing a leper", B: "Feeding the 5,000", C: "Water into wine", D: "Walking on water" }, answer: "C", ref: "John 2:1-11" },
+            { question: "Who came to Jesus at night to ask about being born again?", options: { A: "Nicodemus", B: "Zacchaeus", C: "Jairus", D: "Thomas" }, answer: "A", ref: "John 3:1-3" },
+            { question: "John 3:16 says God so loved the world that He gave His only ___.", options: { A: "servant", B: "Son", C: "prophet", D: "king" }, answer: "B", ref: "John 3:16" },
+            { question: "Who did Jesus meet at the well in John 4?", options: { A: "A Samaritan woman", B: "Martha", C: "Mary Magdalene", D: "An Ethiopian eunuch" }, answer: "A", ref: "John 4:7-9" },
+            { question: "In John 10, Jesus says, \"I am the ___ shepherd\".", options: { A: "great", B: "good", C: "faithful", D: "chosen" }, answer: "B", ref: "John 10:11" },
+          ],
+        },
+        romans: {
+          title: "Romans",
+          short: "Rom",
+          pos: { x: 74, y: 88 },
+          questions: [
+            { question: "Romans 1:16 says Paul is not ashamed of the ___.", options: { A: "law", B: "gospel", C: "temple", D: "cross" }, answer: "B", ref: "Romans 1:16" },
+            { question: "Romans 3:23 says all have sinned and fall short of the ___ of God.", options: { A: "love", B: "glory", C: "mercy", D: "peace" }, answer: "B", ref: "Romans 3:23" },
+            { question: "Romans 5:8 says while we were still sinners, Christ ___ for us.", options: { A: "prayed", B: "died", C: "rose", D: "ruled" }, answer: "B", ref: "Romans 5:8" },
+            { question: "Romans 6:23 says the wages of sin is death, but the gift of God is ___.", options: { A: "wisdom", B: "eternal life", C: "prosperity", D: "forgiveness" }, answer: "B", ref: "Romans 6:23" },
+            { question: "Romans 8:1 says there is now no ___ for those in Christ Jesus.", options: { A: "fear", B: "condemnation", C: "weakness", D: "death" }, answer: "B", ref: "Romans 8:1" },
+            { question: "Romans 12:2 says be transformed by the renewing of your ___.", options: { A: "heart", B: "mind", C: "strength", D: "spirit" }, answer: "B", ref: "Romans 12:2" },
+          ],
+        },
+      };
+
+      const BOOK_ORDER = ["genesis", "exodus", "psalms", "john", "acts", "romans"];
+      let ACTIVE_BOOK_ID = "acts";
+      let ACTIVE_BOOK = BOOKS[ACTIVE_BOOK_ID];
+      let ACTIVE_QUESTIONS = ACTIVE_BOOK.questions;
+      let ACTIVE_LEVELS = ACTIVE_BOOK.levels || {};
+
+      function buildAutoLevels(title, total) {
+        const levels = {};
+        const count = Math.max(1, Math.ceil(total / QUESTIONS_PER_LEVEL));
+        for (let i = 1; i <= count; i++) {
+          levels[i] = { name: `${title} - Level ${i}` };
+        }
+        return levels;
+      }
+
+      function setActiveBook(bookId) {
+        const book = BOOKS[bookId];
+        if (!book) return;
+        ACTIVE_BOOK_ID = bookId;
+        ACTIVE_BOOK = book;
+        ACTIVE_QUESTIONS = (book.questions || []).map((q, i) => ({
+          ...q,
+          level: q.level ?? Math.floor(i / QUESTIONS_PER_LEVEL) + 1,
+        }));
+        ACTIVE_LEVELS = book.levels || buildAutoLevels(book.title, ACTIVE_QUESTIONS.length);
+      }
+
+      function resolveBookId(bookId) {
+        return BOOKS[bookId] ? bookId : "acts";
+      }
+
       // ---------- State ----------
       let state;
       function freshState() {
@@ -381,11 +576,17 @@
       const statScore = el("statScore");
       const statStreak = el("statStreak");
       const statLevelName = el("statLevelName");
+      const statBookName = el("statBookName");
       const bestScoreEl = el("bestScore");
       const rankEl = el("rank");
       const gemCountEl = el("gemCount");
       const btnAddGems = el("btnAddGems");
       const menu = el("menu");
+      const bookMap = el("bookMap");
+      const bookNodes = el("bookNodes");
+      const btnCloseMap = el("btnCloseMap");
+      const mapHint = el("mapHint");
+      const selectedBookLabel = el("selectedBookLabel");
       const btnNewGame = el("btnNewGame");
       const btnContinue = el("btnContinue");
       const bestScoreMenu = el("bestScoreMenu");
@@ -472,14 +673,28 @@
       }
 
       // ---------- Storage / rank ----------
-      const BEST_KEY = "acts_quiz_best_v3";
+      const BEST_KEY_PREFIX = "acts_quiz_best_v3_";
       const SAVE_KEY = "acts_quiz_save_v3";
+      const LAST_BOOK_KEY = "acts_quiz_last_book_v3";
 
-      function getBestScore() {
-        return Number(localStorage.getItem(BEST_KEY) || "0");
+      function bestKey(bookId) {
+        return `${BEST_KEY_PREFIX}${bookId}`;
       }
-      function setBestScore(v) {
-        localStorage.setItem(BEST_KEY, String(v));
+      function getBestScore(bookId = ACTIVE_BOOK_ID) {
+        const key = bestKey(bookId);
+        const stored = localStorage.getItem(key);
+        if (stored !== null) return Number(stored);
+        if (bookId === "acts") {
+          const legacy = localStorage.getItem("acts_quiz_best_v3");
+          if (legacy !== null) {
+            localStorage.setItem(key, legacy);
+            return Number(legacy);
+          }
+        }
+        return 0;
+      }
+      function setBestScore(bookId, v) {
+        localStorage.setItem(bestKey(bookId), String(v));
       }
 
       function readSave() {
@@ -493,12 +708,14 @@
       function writeSave() {
         try {
           const payload = {
+            bookId: ACTIVE_BOOK_ID,
             idx: state.idx,
             score: state.score,
             lives: state.lives,
             streak: state.streak,
             finished: state.finished,
             gemCount: state.gemCount,
+            total: ACTIVE_QUESTIONS.length,
           };
           localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
         } catch {}
@@ -508,10 +725,11 @@
       }
 
       function calcRank(score) {
-        // Base score is 30 * 10 = 300, plus streak bonuses
-        if (score >= 280) return "Acts Grandmaster";
-        if (score >= 210) return "Kingdom Builder";
-        if (score >= 140) return "Growing Disciple";
+        const base = ACTIVE_QUESTIONS.length * 10;
+        if (base <= 0) return "Fresh Learner";
+        if (score >= Math.round(base * 0.9)) return `${ACTIVE_BOOK.title} Grandmaster`;
+        if (score >= Math.round(base * 0.7)) return "Kingdom Builder";
+        if (score >= Math.round(base * 0.5)) return "Growing Disciple";
         return "Fresh Learner";
       }
 
@@ -542,25 +760,38 @@
       }
 
       function renderProgress() {
-        const total = QUESTIONS.length;
-        const current = state.idx + 1;
-        const pct = Math.round(((current - 1) / total) * 100);
+        const total = ACTIVE_QUESTIONS.length;
+        const current = Math.min(state.idx + 1, total);
+        const pct = total ? Math.round(((current - 1) / total) * 100) : 0;
         progressFill.style.width = pct + "%";
         statProgress.textContent = `${current}/${total}`;
       }
 
       function renderMeta() {
-        const q = QUESTIONS[state.idx];
-        statLevelName.textContent = LEVELS[q.level].name;
+        const q = ACTIVE_QUESTIONS[state.idx] || ACTIVE_QUESTIONS[0];
+        const levelName = q ? (ACTIVE_LEVELS[q.level]?.name || `Level ${q.level}`) : "No questions";
+        statBookName.textContent = ACTIVE_BOOK.title;
+        statLevelName.textContent = levelName;
         statScore.textContent = String(state.score);
         statStreak.textContent = String(state.streak);
-        bestScoreEl.textContent = String(getBestScore());
+        bestScoreEl.textContent = String(getBestScore(ACTIVE_BOOK_ID));
         rankEl.textContent = calcRank(state.score);
         gemCountEl.textContent = String(state.gemCount);
       }
 
       function renderQuestion() {
-        const q = QUESTIONS[state.idx];
+        const q = ACTIVE_QUESTIONS[state.idx];
+        if (!q) {
+          qText.textContent = "No questions loaded.";
+          choices.innerHTML = "";
+          feedback.classList.add("hidden");
+          btnNext.classList.add("hidden");
+          btnRestart.classList.add("hidden");
+          renderLives();
+          renderProgress();
+          renderMeta();
+          return;
+        }
 
         qText.textContent = q.question; // no "1/30" prefix here
         choices.innerHTML = "";
@@ -605,7 +836,7 @@
       function answer(letter) {
         if (state.answered || state.finished) return;
 
-        const q = QUESTIONS[state.idx];
+        const q = ACTIVE_QUESTIONS[state.idx];
         state.answered = true;
         lockChoices();
 
@@ -652,7 +883,7 @@
 
         // Level-up confetti after each level
         const nextIdx = state.idx + 1;
-        if (nextIdx % QUESTIONS_PER_LEVEL === 0 && nextIdx < QUESTIONS.length) {
+        if (nextIdx % QUESTIONS_PER_LEVEL === 0 && nextIdx < ACTIVE_QUESTIONS.length) {
           beep("level");
           popConfetti();
         }
@@ -667,7 +898,7 @@
         state.idx += 1;
         state.answered = false;
 
-        if (state.idx >= QUESTIONS.length) {
+        if (state.idx >= ACTIVE_QUESTIONS.length) {
           endGame(true);
           return;
         }
@@ -683,14 +914,14 @@
         choices.innerHTML = "";
 
         const best = getBestScore();
-        if (state.score > best) setBestScore(state.score);
+        if (state.score > best) setBestScore(ACTIVE_BOOK_ID, state.score);
 
         renderMeta();
 
-        const q = QUESTIONS[Math.min(state.idx, QUESTIONS.length - 1)];
+        const q = ACTIVE_QUESTIONS[Math.min(state.idx, ACTIVE_QUESTIONS.length - 1)];
         setFeedback(
           won ? "good" : "bad",
-          `${won ? `<div class="font-black text-lg">You cleared Acts Quiz Arcade!</div>` : `<div class="font-black text-lg">Game over.</div>`}
+          `${won ? `<div class="font-black text-lg">You cleared ${ACTIVE_BOOK.title} Quiz Arcade!</div>` : `<div class="font-black text-lg">Game over.</div>`}
            <div class="mt-2">Final score: <span class="font-black">${state.score}</span></div>
            <div class="mt-1">Rank: <span class="font-black">${calcRank(state.score)}</span></div>
            <div class="mt-2 text-xs opacity-80">Last reference shown: ${q.ref}</div>`
@@ -707,13 +938,77 @@
         writeSave();
       }
 
+      function renderBookMap() {
+        bookNodes.innerHTML = "";
+        BOOK_ORDER.forEach((id, index) => {
+          const book = BOOKS[id];
+          const wrap = document.createElement("div");
+          wrap.className = "book-node-wrap";
+          wrap.style.left = book.pos.x + "%";
+          wrap.style.top = book.pos.y + "%";
+
+          const btn = document.createElement("button");
+          btn.className = "book-node";
+          if (id === ACTIVE_BOOK_ID) btn.classList.add("active");
+          btn.setAttribute("aria-label", book.title);
+          btn.title = book.title;
+          btn.innerHTML = `<span>${index + 1}</span>`;
+          btn.addEventListener("click", () => startNewGameWithBook(id));
+
+          const label = document.createElement("div");
+          label.className = "book-label";
+          label.textContent = book.title;
+
+          wrap.appendChild(btn);
+          wrap.appendChild(label);
+          bookNodes.appendChild(wrap);
+        });
+
+        const lastId = resolveBookId(localStorage.getItem(LAST_BOOK_KEY));
+        selectedBookLabel.textContent = `Last: ${BOOKS[lastId].title}`;
+      }
+
+      function showBookMap() {
+        renderBookMap();
+        bookMap.classList.remove("hidden");
+        bookMap.classList.add("flex");
+      }
+
+      function hideBookMap() {
+        bookMap.classList.add("hidden");
+        bookMap.classList.remove("flex");
+      }
+
+      function startNewGameWithBook(bookId) {
+        const resolved = resolveBookId(bookId);
+        setActiveBook(resolved);
+        localStorage.setItem(LAST_BOOK_KEY, resolved);
+        clearSave();
+        resetRun();
+        hideBookMap();
+        hideMenu();
+        startBgMusic(); // start BG music after user click
+      }
+
       function showMenu() {
-        bestScoreMenu.textContent = String(getBestScore());
+        hideBookMap();
         const saved = readSave();
-        if (saved && !saved.finished && saved.lives > 0 && saved.idx < QUESTIONS.length) {
-          saveStatus.textContent = `Q ${saved.idx + 1}/${QUESTIONS.length}`;
-          btnContinue.disabled = false;
-          btnContinue.style.opacity = "1";
+        const lastBookId = resolveBookId(localStorage.getItem(LAST_BOOK_KEY));
+        const savedBookId = saved ? resolveBookId(saved.bookId) : null;
+        const menuBookId = savedBookId || lastBookId;
+
+        bestScoreMenu.textContent = String(getBestScore(menuBookId));
+        if (saved && !saved.finished && saved.lives > 0) {
+          const total = saved.total ?? BOOKS[savedBookId].questions.length;
+          if (saved.idx < total) {
+            saveStatus.textContent = `${BOOKS[savedBookId].title}: Q ${saved.idx + 1}/${total}`;
+            btnContinue.disabled = false;
+            btnContinue.style.opacity = "1";
+          } else {
+            saveStatus.textContent = "None";
+            btnContinue.disabled = true;
+            btnContinue.style.opacity = "0.7";
+          }
         } else {
           saveStatus.textContent = "None";
           btnContinue.disabled = true;
@@ -727,18 +1022,21 @@
       }
 
       function startNewGame() {
-        clearSave();
-        resetRun();
         hideMenu();
-        startBgMusic(); // start BG music after user click
+        showBookMap();
       }
 
       function startContinue() {
         const saved = readSave();
         if (!saved) return;
 
+        const savedBookId = resolveBookId(saved.bookId);
+        setActiveBook(savedBookId);
+        localStorage.setItem(LAST_BOOK_KEY, savedBookId);
+
         state = freshState();
-        state.idx = Math.max(0, Math.min(saved.idx ?? 0, QUESTIONS.length - 1));
+        const total = saved.total ?? ACTIVE_QUESTIONS.length;
+        state.idx = Math.max(0, Math.min(saved.idx ?? 0, total - 1));
         state.score = saved.score ?? 0;
         state.lives = saved.lives ?? 3;
         state.streak = saved.streak ?? 0;
@@ -748,6 +1046,7 @@
 
         renderQuestion();
         hideMenu();
+        hideBookMap();
         startBgMusic(); // start BG music after user click
       }
 
@@ -765,6 +1064,10 @@
 
       btnNewGame.addEventListener("click", startNewGame);
       btnContinue.addEventListener("click", startContinue);
+      btnCloseMap.addEventListener("click", () => {
+        hideBookMap();
+        showMenu();
+      });
 
       btnAddGems.addEventListener("click", () => {
         state.gemCount += 25;
@@ -817,9 +1120,11 @@
       });
 
       // Start
+      const initialBookId = resolveBookId(localStorage.getItem(LAST_BOOK_KEY));
+      setActiveBook(initialBookId);
       state = freshState();
-      bestScoreEl.textContent = String(getBestScore());
-      bestScoreMenu.textContent = String(getBestScore());
+      bestScoreEl.textContent = String(getBestScore(initialBookId));
+      bestScoreMenu.textContent = String(getBestScore(initialBookId));
       showMenu();
       renderQuestion();
     </script>
