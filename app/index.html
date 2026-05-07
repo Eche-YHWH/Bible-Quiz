@@ -46,25 +46,27 @@
     </div>
 
     <!-- Book Map -->
-    <div id="bookMap" class="overlay" role="dialog" aria-modal="true" aria-label="Bible book map">
-      <div class="paper panel" tabindex="-1">
-        <div class="panel-header">
+    <div id="bookMap" class="overlay" role="dialog" aria-modal="true" aria-label="Bible story map">
+      <div class="paper panel map-panel" tabindex="-1">
+        <div class="panel-header map-header">
           <div>
-            <h2 class="panel-title">Bible Book Map</h2>
-            <p class="panel-subtitle">Pick a book to start.</p>
+            <h2 class="panel-title">Story Map</h2>
+            <p class="panel-subtitle">Tap a glowing medallion to begin.</p>
           </div>
           <button id="btnCloseMap" class="badge" aria-label="Back to menu">Back</button>
         </div>
 
         <div class="book-map">
-          <svg class="map-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M10 15 C 30 5, 45 25, 70 20 S 95 30, 85 40 C 75 52, 55 45, 45 60 S 30 75, 22 80 S 40 92, 72 88" />
-          </svg>
+          <img
+            class="map-art"
+            src="./assets/bible-story-map.png"
+            alt="Illustrated Bible story map with selectable book medallions."
+          />
           <div id="bookNodes" class="map-nodes"></div>
         </div>
 
         <div class="row-between map-meta">
-          <span id="mapHint">Tap a book to begin.</span>
+          <span id="mapHint">Tap a glowing medallion to begin.</span>
           <span id="selectedBookLabel" class="value"></span>
         </div>
       </div>

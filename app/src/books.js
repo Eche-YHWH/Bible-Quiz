@@ -51,11 +51,11 @@ const QUESTIONS = [
 ];
 
 export const BOOKS = {
-  acts: { title: "Acts", short: "Acts", pos: { x: 40, y: 78 }, levels: LEVELS, questions: QUESTIONS },
+  acts: { title: "Acts", short: "Acts", pos: { x: 48.8, y: 80.2 }, levels: LEVELS, questions: QUESTIONS },
   genesis: {
     title: "Genesis",
     short: "Gen",
-    pos: { x: 12, y: 18 },
+    pos: { x: 15.7, y: 39.5 },
     questions: [
       { question: "On which day did God create the sun, moon, and stars?", options: { A: "Day 1", B: "Day 2", C: "Day 3", D: "Day 4" }, answer: "D", ref: "Genesis 1:14-19" },
       { question: "Who was the first man created by God?", options: { A: "Noah", B: "Adam", C: "Abraham", D: "Jacob" }, answer: "B", ref: "Genesis 2:7" },
@@ -68,7 +68,7 @@ export const BOOKS = {
   exodus: {
     title: "Exodus",
     short: "Exo",
-    pos: { x: 70, y: 22 },
+    pos: { x: 34.4, y: 54.1 },
     questions: [
       { question: "What did Moses see that burned but was not consumed?", options: { A: "Burning bush", B: "Pillar of cloud", C: "Golden calf", D: "Mount Sinai" }, answer: "A", ref: "Exodus 3:2" },
       { question: "What was the first plague on Egypt?", options: { A: "Frogs", B: "Water turned to blood", C: "Darkness", D: "Locusts" }, answer: "B", ref: "Exodus 7:20" },
@@ -81,7 +81,7 @@ export const BOOKS = {
   psalms: {
     title: "Psalms",
     short: "Psa",
-    pos: { x: 30, y: 46 },
+    pos: { x: 77.9, y: 39.3 },
     questions: [
       { question: "\"The Lord is my shepherd; I shall not want\" is from which Psalm?", options: { A: "Psalm 1", B: "Psalm 19", C: "Psalm 23", D: "Psalm 100" }, answer: "C", ref: "Psalm 23:1" },
       { question: "Psalm 19 says the heavens declare the ___ of God.", options: { A: "power", B: "mercy", C: "glory", D: "law" }, answer: "C", ref: "Psalm 19:1" },
@@ -94,7 +94,7 @@ export const BOOKS = {
   john: {
     title: "John",
     short: "John",
-    pos: { x: 72, y: 56 },
+    pos: { x: 69.9, y: 61.2 },
     questions: [
       { question: "John 1:1 says the Word was with God, and the Word was ___.", options: { A: "Light", B: "God", C: "Spirit", D: "Life" }, answer: "B", ref: "John 1:1" },
       { question: "What was Jesus' first miracle in John?", options: { A: "Healing a leper", B: "Feeding the 5,000", C: "Water into wine", D: "Walking on water" }, answer: "C", ref: "John 2:1-11" },
@@ -107,7 +107,7 @@ export const BOOKS = {
   romans: {
     title: "Romans",
     short: "Rom",
-    pos: { x: 74, y: 88 },
+    pos: { x: 80.6, y: 84.4 },
     questions: [
       { question: "Romans 1:16 says Paul is not ashamed of the ___.", options: { A: "law", B: "gospel", C: "temple", D: "cross" }, answer: "B", ref: "Romans 1:16" },
       { question: "Romans 3:23 says all have sinned and fall short of the ___ of God.", options: { A: "love", B: "glory", C: "mercy", D: "peace" }, answer: "B", ref: "Romans 3:23" },
@@ -117,9 +117,16 @@ export const BOOKS = {
       { question: "Romans 12:2 says be transformed by the renewing of your ___.", options: { A: "heart", B: "mind", C: "strength", D: "spirit" }, answer: "B", ref: "Romans 12:2" },
     ],
   },
+  numbers: {
+    title: "Numbers",
+    short: "Num",
+    pos: { x: 52.4, y: 39.6 },
+    locked: true,
+    questions: [],
+  },
 };
 
-export const BOOK_ORDER = ["genesis", "exodus", "psalms", "john", "acts", "romans"];
+export const BOOK_ORDER = ["genesis", "exodus", "numbers", "psalms", "john", "acts", "romans"];
 
 export function resolveBookId(bookId) {
   return BOOKS[bookId] ? bookId : "acts";

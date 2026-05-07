@@ -130,6 +130,10 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     store.dispatch({ type: ACTIONS.SET_BOOK, bookId: activeBook.id });
   }
 
+  function isBookPlayable(book) {
+    return !book.locked && Array.isArray(book.questions) && book.questions.length > 0;
+  }
+
   function applySettings(settings) {
     dom.settingSound.checked = settings.sound;
     dom.settingMusic.value = settings.musicVolume;
@@ -390,7 +394,7 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
 
   function renderBookMap() {
     dom.bookNodes.innerHTML = "";
-    BOOK_ORDER.forEach((id, index) => {
+    BOOK_ORDER.forEach((id) => {
       const book = getBookData(id);
       const wrap = document.createElement("div");
       wrap.className = "book-node-wrap";
@@ -402,15 +406,17 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
       if (id === activeBook.id) btn.classList.add("active");
       btn.setAttribute("aria-label", book.title);
       btn.title = book.title;
-      btn.textContent = String(index + 1);
-      btn.addEventListener("click", () => startNewGameWithBook(id));
+      btn.type = "button";
 
-      const label = document.createElement("div");
-      label.className = "book-label";
-      label.textContent = book.title;
+      if (isBookPlayable(book)) {
+        btn.addEventListener("click", () => startNewGameWithBook(id));
+      } else {
+        btn.classList.add("locked");
+        btn.setAttribute("aria-disabled", "true");
+        btn.addEventListener("click", () => showToast(`${book.title} is coming soon.`));
+      }
 
       wrap.appendChild(btn);
-      wrap.appendChild(label);
       dom.bookNodes.appendChild(wrap);
     });
 
