@@ -1,4 +1,4 @@
-const CACHE_NAME = "acts-quiz-v2";
+const CACHE_NAME = "acts-quiz-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -14,7 +14,8 @@ const ASSETS = [
   "./assets/fairy-tale-loop-275534.mp3",
   "./assets/correct-156911.mp3",
   "./assets/correct-472358.mp3",
-  "./assets/bible-story-map.png",
+  "./assets/menu-reference.png",
+  "./assets/bible-map-66.png",
   "./assets/streak_popup_transparent.png",
   "./assets/icon.svg"
 ];

@@ -241,11 +241,18 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
 
   function renderMenu() {
     const saved = storage.readSave();
+    const savedBookId = resolveBookId(saved?.bookId);
+    const savedBook = saved ? getBookData(savedBookId) : null;
+    const savedTotal = saved ? saved.total ?? savedBook.questions.length : 0;
     const hasSavedRun =
-      saved && !saved.finished && saved.lives > 0 && typeof saved.idx === "number" && saved.idx < saved.total;
-    const lastBookId = resolveBookId((hasSavedRun && saved.bookId) || storage.getLastBook());
+      saved &&
+      !saved.finished &&
+      saved.lives > 0 &&
+      typeof saved.idx === "number" &&
+      saved.idx < savedTotal;
+    const lastBookId = resolveBookId((hasSavedRun && savedBookId) || storage.getLastBook());
     const lastBook = getBookData(lastBookId);
-    const totalQuestions = hasSavedRun ? saved.total || lastBook.questions.length : lastBook.questions.length;
+    const totalQuestions = hasSavedRun ? savedTotal : lastBook.questions.length;
     const currentQuestion = hasSavedRun ? Math.min(saved.idx + 1, totalQuestions) : 0;
     const levelIndex = hasSavedRun ? Math.floor(saved.idx / QUESTIONS_PER_LEVEL) + 1 : 1;
     const score = hasSavedRun ? saved.score || 0 : storage.getBestScore(lastBookId);
@@ -594,9 +601,14 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
 
   function startContinue() {
     const saved = storage.readSave();
-    if (!saved || saved.finished || saved.lives <= 0) return;
+    if (!saved) return;
 
     const savedBookId = resolveBookId(saved.bookId);
+    const savedBook = getBookData(savedBookId);
+    const savedTotal = saved.total ?? savedBook.questions.length;
+
+    if (saved.finished || saved.lives <= 0 || saved.idx >= savedTotal) return;
+
     setActiveBook(savedBookId);
     storage.setLastBook(savedBookId);
 
@@ -622,7 +634,11 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     store.dispatch({ type: ACTIONS.ADD_GEMS, amount: 25 });
     renderMeta();
     renderMenu();
-    saveRun({ silent: true });
+
+    if (!isVisible(dom.menu) || storage.readSave()) {
+      saveRun({ silent: true });
+    }
+
     confetti(store.getState().settings.reduceMotion);
     audio.beep("level");
     showToast("+25 gems");
