@@ -1,11 +1,41 @@
-import { BOOK_ORDER, getBookData, resolveBookId, QUESTIONS_PER_LEVEL } from "./books.js";
+import {
+  BOOKS,
+  BOOK_DIRECTORY,
+  MAP_GROUPS,
+  getBookData,
+  resolveBookId,
+  QUESTIONS_PER_LEVEL,
+} from "./books.js";
 import { ACTIONS, evaluateAnswer, computeRank } from "./state.js";
+
+const PLAYABLE_BOOK_IDS = new Set(
+  Object.entries(BOOKS)
+    .filter(([, book]) => !book.locked && Array.isArray(book.questions) && book.questions.length > 0)
+    .map(([bookId]) => bookId)
+);
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getBookTitle(bookId) {
+  return BOOKS[bookId]?.title || BOOK_DIRECTORY[bookId]?.title || "Unknown Book";
+}
+
+function getMapGroup(groupId) {
+  return MAP_GROUPS.find((group) => group.id === groupId) || null;
+}
+
+function isBookPlayable(bookId) {
+  return PLAYABLE_BOOK_IDS.has(bookId);
+}
 
 export function initUI({ store, audio, confetti, storage, initialBook }) {
   let activeBook = initialBook;
   let releaseFocus = null;
   let lastFocused = null;
   let lastSaveToastAt = 0;
+  let selectedMapGroupId = null;
 
   const el = (id) => document.getElementById(id);
   const dom = {
@@ -32,12 +62,27 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     btnPauseRestart: el("btnPauseRestart"),
     btnPauseMenu: el("btnPauseMenu"),
     btnNewGame: el("btnNewGame"),
+    btnOpenMap: el("btnOpenMap"),
     btnContinue: el("btnContinue"),
+    continueButtonNote: el("continueButtonNote"),
     btnAddGems: el("btnAddGems"),
+    btnMenuAddGems: el("btnMenuAddGems"),
+    btnMenuSettings: el("btnMenuSettings"),
     btnSound: el("btnSound"),
-    bestScoreMenu: el("bestScoreMenu"),
-    saveStatus: el("saveStatus"),
-    saveMeta: el("saveMeta"),
+    btnResetMapZoom: el("btnResetMapZoom"),
+    btnResetMapTray: el("btnResetMapTray"),
+    btnNavHome: el("btnNavHome"),
+    btnNavQuests: el("btnNavQuests"),
+    btnNavRankings: el("btnNavRankings"),
+    btnNavProfile: el("btnNavProfile"),
+    menuGemCount: el("menuGemCount"),
+    menuLastBook: el("menuLastBook"),
+    menuLastLevel: el("menuLastLevel"),
+    menuLastScore: el("menuLastScore"),
+    menuLastLives: el("menuLastLives"),
+    menuLastProgressFill: el("menuLastProgressFill"),
+    menuLastProgressText: el("menuLastProgressText"),
+    menuLastStatus: el("menuLastStatus"),
     statBookName: el("statBookName"),
     statProgress: el("statProgress"),
     statLevelName: el("statLevelName"),
@@ -48,8 +93,13 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     rank: el("rank"),
     gemCount: el("gemCount"),
     progressFill: el("progressFill"),
-    bookNodes: el("bookNodes"),
-    selectedBookLabel: el("selectedBookLabel"),
+    mapCanvas: el("mapCanvas"),
+    groupHotspots: el("groupHotspots"),
+    mapHint: el("mapHint"),
+    mapTray: el("mapTray"),
+    mapGroupTitle: el("mapGroupTitle"),
+    mapGroupCaption: el("mapGroupCaption"),
+    mapBookButtons: el("mapBookButtons"),
     settingSound: el("settingSound"),
     settingMusic: el("settingMusic"),
     settingMusicValue: el("settingMusicValue"),
@@ -58,26 +108,28 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     settingMotion: el("settingMotion"),
   };
 
-  const isVisible = (element) => element.classList.contains("is-visible");
+  const isVisible = (element) => element && element.classList.contains("is-visible");
 
   function trapFocus(container) {
     const focusable = Array.from(
       container.querySelectorAll(
         "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
       )
-    ).filter((el) => !el.disabled && el.offsetParent !== null);
+    ).filter((node) => !node.disabled && node.offsetParent !== null);
 
     if (focusable.length === 0) return () => {};
+
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
 
-    const onKey = (e) => {
-      if (e.key !== "Tab") return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
+    const onKey = (event) => {
+      if (event.key !== "Tab") return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
         first.focus();
       }
     };
@@ -103,9 +155,11 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     container.setAttribute("aria-hidden", "true");
     releaseFocus?.();
     releaseFocus = null;
+
     if (lastFocused && typeof lastFocused.focus === "function") {
       lastFocused.focus();
     }
+
     lastFocused = null;
   }
 
@@ -128,10 +182,6 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
   function setActiveBook(bookId) {
     activeBook = getBookData(bookId);
     store.dispatch({ type: ACTIONS.SET_BOOK, bookId: activeBook.id });
-  }
-
-  function isBookPlayable(book) {
-    return !book.locked && Array.isArray(book.questions) && book.questions.length > 0;
   }
 
   function applySettings(settings) {
@@ -157,7 +207,8 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
   function renderLives() {
     const { lives } = store.getState().run;
     dom.statLives.innerHTML = "";
-    for (let i = 0; i < 3; i++) {
+
+    for (let i = 0; i < 3; i += 1) {
       const span = document.createElement("span");
       span.textContent = i < lives ? "❤️" : "🖤";
       dom.statLives.appendChild(span);
@@ -176,13 +227,45 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     const state = store.getState();
     const q = activeBook.questions[state.run.idx] || activeBook.questions[0];
     const levelName = q ? activeBook.levels[q.level]?.name || `Level ${q.level}` : "No questions";
+    const gems = String(state.run.gemCount);
+
     dom.statBookName.textContent = activeBook.title;
     dom.statLevelName.textContent = levelName;
     dom.statScore.textContent = String(state.run.score);
     dom.statStreak.textContent = String(state.run.streak);
     dom.bestScore.textContent = String(storage.getBestScore(activeBook.id));
     dom.rank.textContent = computeRank(state.run.score, activeBook.questions.length, activeBook.title);
-    dom.gemCount.textContent = String(state.run.gemCount);
+    dom.gemCount.textContent = gems;
+    dom.menuGemCount.textContent = gems;
+  }
+
+  function renderMenu() {
+    const saved = storage.readSave();
+    const hasSavedRun =
+      saved && !saved.finished && saved.lives > 0 && typeof saved.idx === "number" && saved.idx < saved.total;
+    const lastBookId = resolveBookId((hasSavedRun && saved.bookId) || storage.getLastBook());
+    const lastBook = getBookData(lastBookId);
+    const totalQuestions = hasSavedRun ? saved.total || lastBook.questions.length : lastBook.questions.length;
+    const currentQuestion = hasSavedRun ? Math.min(saved.idx + 1, totalQuestions) : 0;
+    const levelIndex = hasSavedRun ? Math.floor(saved.idx / QUESTIONS_PER_LEVEL) + 1 : 1;
+    const score = hasSavedRun ? saved.score || 0 : storage.getBestScore(lastBookId);
+    const lives = hasSavedRun ? saved.lives || 3 : 3;
+    const progressPct = totalQuestions ? Math.round((currentQuestion / totalQuestions) * 100) : 0;
+
+    dom.menuGemCount.textContent = String(store.getState().run.gemCount);
+    dom.menuLastBook.textContent = lastBook.title;
+    dom.menuLastLevel.textContent = hasSavedRun ? `Level ${levelIndex}` : "Ready for a fresh start";
+    dom.menuLastScore.textContent = String(score);
+    dom.menuLastLives.textContent = String(lives);
+    dom.menuLastProgressFill.style.width = `${progressPct}%`;
+    dom.menuLastProgressText.textContent = `${currentQuestion}/${totalQuestions}`;
+    dom.menuLastStatus.textContent = hasSavedRun
+      ? `Saved progress in ${lastBook.title}`
+      : `Best score in ${lastBook.title}: ${storage.getBestScore(lastBookId)}`;
+    dom.continueButtonNote.textContent = hasSavedRun
+      ? `Continue in ${lastBook.title}`
+      : "No saved journey yet";
+    dom.btnContinue.disabled = !hasSavedRun;
   }
 
   function setFeedback(type, html) {
@@ -192,7 +275,9 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
   }
 
   function lockChoices() {
-    dom.choices.querySelectorAll("button").forEach((b) => (b.disabled = true));
+    dom.choices.querySelectorAll("button").forEach((button) => {
+      button.disabled = true;
+    });
   }
 
   function renderQuestion() {
@@ -241,6 +326,7 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
 
   function saveRun(options = {}) {
     const state = store.getState();
+
     storage.writeSave({
       bookId: activeBook.id,
       idx: state.run.idx,
@@ -251,6 +337,9 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
       gemCount: state.run.gemCount,
       total: activeBook.questions.length,
     });
+
+    renderMenu();
+
     if (!options.silent) maybeToastSave();
   }
 
@@ -265,13 +354,22 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     if (score > best) storage.setBestScore(activeBook.id, score);
 
     renderMeta();
+    renderMenu();
 
     const q = activeBook.questions[Math.min(store.getState().run.idx, activeBook.questions.length - 1)];
     setFeedback(
       won ? "good" : "bad",
-      `${won ? `<div class="value">You cleared ${activeBook.title} Quiz Arcade!</div>` : `<div class="value">Game over.</div>`}
+      `${
+        won
+          ? `<div class="value">You cleared ${activeBook.title} Quiz Arcade!</div>`
+          : `<div class="value">Game over.</div>`
+      }
        <div class="menu-meta">Final score: <span class="value">${score}</span></div>
-       <div class="menu-meta">Rank: <span class="value">${computeRank(score, activeBook.questions.length, activeBook.title)}</span></div>
+       <div class="menu-meta">Rank: <span class="value">${computeRank(
+         score,
+         activeBook.questions.length,
+         activeBook.title
+       )}</span></div>
        <div class="menu-meta">Last reference shown: ${q.ref}</div>`
     );
 
@@ -308,6 +406,7 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
         "bad",
         `<div class="value">Wrong. -1 life</div><div class="menu-meta">Correct: <span class="value">${q.answer}. ${correctText}</span></div><div class="menu-meta">Reference: ${q.ref}</div>`
       );
+
       if (!store.getState().settings.reduceMotion) {
         const card = dom.qText.closest("#paperCard");
         if (card) {
@@ -315,6 +414,7 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
           setTimeout(() => card.classList.remove("shake"), 380);
         }
       }
+
       audio.beep("bad");
     }
 
@@ -354,7 +454,106 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
   function resetRun() {
     store.dispatch({ type: ACTIONS.RESET_RUN });
     renderQuestion();
+    renderMenu();
     saveRun();
+  }
+
+  function applyMapTransform(group) {
+    if (!group) {
+      dom.mapCanvas.style.setProperty("--map-scale", "1");
+      dom.mapCanvas.style.setProperty("--map-shift-x", "0%");
+      dom.mapCanvas.style.setProperty("--map-shift-y", "0%");
+      return;
+    }
+
+    const { x, y, scale } = group.focus;
+    const minShift = 100 - scale * 100;
+    const shiftX = clamp(50 - x * scale, minShift, 0);
+    const shiftY = clamp(50 - y * scale, minShift, 0);
+
+    dom.mapCanvas.style.setProperty("--map-scale", String(scale));
+    dom.mapCanvas.style.setProperty("--map-shift-x", `${shiftX}%`);
+    dom.mapCanvas.style.setProperty("--map-shift-y", `${shiftY}%`);
+  }
+
+  function renderGroupHotspots() {
+    dom.groupHotspots.innerHTML = "";
+
+    MAP_GROUPS.forEach((group) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "map-group-spot";
+      if (group.id === selectedMapGroupId) btn.classList.add("is-active");
+      btn.style.left = `${group.spot.left}%`;
+      btn.style.top = `${group.spot.top}%`;
+      btn.style.width = `${group.spot.width}%`;
+      btn.style.height = `${group.spot.height}%`;
+      btn.title = group.title;
+      btn.setAttribute("aria-label", `Zoom to ${group.title}`);
+      btn.addEventListener("click", () => setSelectedMapGroup(group.id));
+      dom.groupHotspots.appendChild(btn);
+    });
+  }
+
+  function renderMapTray() {
+    const group = getMapGroup(selectedMapGroupId);
+
+    if (!group) {
+      dom.mapTray.classList.add("hidden");
+      dom.btnResetMapZoom.classList.add("hidden");
+      dom.btnResetMapTray.classList.add("hidden");
+      dom.mapGroupTitle.textContent = "Choose a region";
+      dom.mapGroupCaption.textContent = "Each banner zooms in to its book group.";
+      dom.mapBookButtons.innerHTML = "";
+      dom.mapHint.textContent = "Tap a region banner to zoom in.";
+      return;
+    }
+
+    const playableCount = group.books.filter((bookId) => isBookPlayable(bookId)).length;
+
+    dom.mapTray.classList.remove("hidden");
+    dom.btnResetMapZoom.classList.remove("hidden");
+    dom.btnResetMapTray.classList.remove("hidden");
+    dom.mapGroupTitle.textContent = group.title;
+    dom.mapGroupCaption.textContent =
+      playableCount === group.books.length
+        ? "Every book in this group is ready to play."
+        : `${playableCount} ready now • ${group.books.length - playableCount} coming soon`;
+    dom.mapHint.textContent = `Choose a book from ${group.title}.`;
+    dom.mapBookButtons.innerHTML = "";
+
+    group.books.forEach((bookId) => {
+      const playable = isBookPlayable(bookId);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `map-book-button${playable ? "" : " locked"}`;
+      btn.innerHTML = `<span class="map-book-name">${getBookTitle(bookId)}</span><span class="map-book-note">${
+        playable ? "Play now" : "Coming soon"
+      }</span>`;
+      btn.addEventListener("click", () => {
+        if (playable) {
+          startNewGameWithBook(bookId);
+        } else {
+          showToast(`${getBookTitle(bookId)} is coming soon.`);
+        }
+      });
+      dom.mapBookButtons.appendChild(btn);
+    });
+  }
+
+  function resetMapZoom() {
+    selectedMapGroupId = null;
+    applyMapTransform(null);
+    renderGroupHotspots();
+    renderMapTray();
+  }
+
+  function setSelectedMapGroup(groupId) {
+    selectedMapGroupId = groupId;
+    const group = getMapGroup(groupId);
+    applyMapTransform(group);
+    renderGroupHotspots();
+    renderMapTray();
   }
 
   function showMenu() {
@@ -363,77 +562,31 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     closeDialog(dom.pause);
     closeDialog(dom.modal);
     closeDialog(dom.streakPop);
-
-    const saved = storage.readSave();
-    const lastBookId = resolveBookId(storage.getLastBook());
-    const savedBookId = saved ? resolveBookId(saved.bookId) : null;
-    const menuBookId = savedBookId || lastBookId;
-    const menuBook = getBookData(menuBookId);
-
-    dom.bestScoreMenu.textContent = String(storage.getBestScore(menuBookId));
-
-    if (saved && !saved.finished && saved.lives > 0) {
-      const total = saved.total ?? menuBook.questions.length;
-      if (saved.idx < total) {
-        dom.saveStatus.textContent = `${menuBook.title}: Q ${saved.idx + 1}/${total}`;
-        dom.saveMeta.textContent = `Score ${saved.score} · Lives ${saved.lives}`;
-        dom.btnContinue.disabled = false;
-      } else {
-        dom.saveStatus.textContent = "None";
-        dom.saveMeta.textContent = "";
-        dom.btnContinue.disabled = true;
-      }
-    } else {
-      dom.saveStatus.textContent = "None";
-      dom.saveMeta.textContent = "";
-      dom.btnContinue.disabled = true;
-    }
-
+    resetMapZoom();
+    renderMenu();
     openDialog(dom.menu);
   }
 
-  function renderBookMap() {
-    dom.bookNodes.innerHTML = "";
-    BOOK_ORDER.forEach((id) => {
-      const book = getBookData(id);
-      const wrap = document.createElement("div");
-      wrap.className = "book-node-wrap";
-      wrap.style.left = `${book.pos.x}%`;
-      wrap.style.top = `${book.pos.y}%`;
-
-      const btn = document.createElement("button");
-      btn.className = "book-node";
-      if (id === activeBook.id) btn.classList.add("active");
-      btn.setAttribute("aria-label", book.title);
-      btn.title = book.title;
-      btn.type = "button";
-
-      if (isBookPlayable(book)) {
-        btn.addEventListener("click", () => startNewGameWithBook(id));
-      } else {
-        btn.classList.add("locked");
-        btn.setAttribute("aria-disabled", "true");
-        btn.addEventListener("click", () => showToast(`${book.title} is coming soon.`));
-      }
-
-      wrap.appendChild(btn);
-      dom.bookNodes.appendChild(wrap);
-    });
-
-    const lastId = resolveBookId(storage.getLastBook());
-    dom.selectedBookLabel.textContent = `Last: ${getBookData(lastId).title}`;
-  }
-
   function showBookMap() {
-    renderBookMap();
+    resetMapZoom();
+    closeDialog(dom.menu);
+    renderGroupHotspots();
     openDialog(dom.bookMap);
   }
 
   function startNewGameWithBook(bookId) {
+    if (!isBookPlayable(bookId)) {
+      showToast(`${getBookTitle(bookId)} is coming soon.`);
+      return;
+    }
+
+    resetMapZoom();
     setActiveBook(bookId);
     storage.setLastBook(activeBook.id);
     storage.clearSave();
-    resetRun();
+    store.dispatch({ type: ACTIONS.RESET_RUN });
+    renderQuestion();
+    renderMenu();
     closeDialog(dom.bookMap);
     closeDialog(dom.menu);
     audio.playMusic();
@@ -460,8 +613,19 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     });
 
     renderQuestion();
+    renderMenu();
     closeDialog(dom.menu);
     audio.playMusic();
+  }
+
+  function awardBonusGems() {
+    store.dispatch({ type: ACTIONS.ADD_GEMS, amount: 25 });
+    renderMeta();
+    renderMenu();
+    saveRun({ silent: true });
+    confetti(store.getState().settings.reduceMotion);
+    audio.beep("level");
+    showToast("+25 gems");
   }
 
   function openPause() {
@@ -479,12 +643,13 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
       closePause();
       return;
     }
+
     if (isVisible(dom.menu) || isVisible(dom.bookMap) || isVisible(dom.modal)) return;
     openPause();
   }
 
-  function handleKey(e) {
-    const tag = (e.target && e.target.tagName) || "";
+  function handleKey(event) {
+    const tag = (event.target && event.target.tagName) || "";
     if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return;
 
     if (isVisible(dom.streakPop)) {
@@ -492,15 +657,22 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
       return;
     }
 
-    if (e.key === "Escape") {
+    if (event.key === "Escape") {
       if (isVisible(dom.modal)) {
         closeDialog(dom.modal);
         return;
       }
+
       if (isVisible(dom.pause)) {
         closePause();
         return;
       }
+
+      if (isVisible(dom.bookMap) && selectedMapGroupId) {
+        resetMapZoom();
+        return;
+      }
+
       if (isVisible(dom.menu) || isVisible(dom.bookMap)) return;
       togglePause();
       return;
@@ -509,12 +681,12 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     const state = store.getState();
     if (state.paused || isVisible(dom.menu) || isVisible(dom.bookMap) || isVisible(dom.modal)) return;
 
-    const k = e.key.toUpperCase();
-    if (!state.run.answered && ["A", "B", "C", "D"].includes(k)) {
+    const key = event.key.toUpperCase();
+    if (!state.run.answered && ["A", "B", "C", "D"].includes(key)) {
       const btns = Array.from(dom.choices.querySelectorAll("button"));
-      const idx = ["A", "B", "C", "D"].indexOf(k);
+      const idx = ["A", "B", "C", "D"].indexOf(key);
       if (btns[idx]) btns[idx].click();
-    } else if (state.run.answered && (e.key === "Enter" || e.key === " ")) {
+    } else if (state.run.answered && (event.key === "Enter" || event.key === " ")) {
       dom.btnNext.click();
     }
   }
@@ -525,6 +697,7 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
   dom.btnNext.addEventListener("click", next);
   dom.btnRestart.addEventListener("click", () => {
     storage.clearSave();
+    renderMenu();
     resetRun();
     audio.playMusic();
   });
@@ -536,6 +709,7 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
   dom.btnPauseRestart.addEventListener("click", () => {
     closePause();
     storage.clearSave();
+    renderMenu();
     resetRun();
     audio.playMusic();
   });
@@ -544,32 +718,24 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     showMenu();
   });
 
-  dom.btnNewGame.addEventListener("click", () => {
-    closeDialog(dom.menu);
-    showBookMap();
-  });
+  dom.btnNewGame.addEventListener("click", showBookMap);
+  dom.btnOpenMap.addEventListener("click", showBookMap);
   dom.btnContinue.addEventListener("click", startContinue);
-  dom.btnCloseMap.addEventListener("click", () => {
-    closeDialog(dom.bookMap);
-    showMenu();
-  });
+  dom.btnCloseMap.addEventListener("click", showMenu);
+  dom.btnResetMapZoom.addEventListener("click", resetMapZoom);
+  dom.btnResetMapTray.addEventListener("click", resetMapZoom);
 
-  dom.btnAddGems.addEventListener("click", () => {
-    store.dispatch({ type: ACTIONS.ADD_GEMS, amount: 25 });
-    renderMeta();
-    saveRun({ silent: true });
-    confetti(store.getState().settings.reduceMotion);
-    audio.beep("level");
-    showToast("+25 gems");
-  });
+  dom.btnAddGems.addEventListener("click", awardBonusGems);
+  dom.btnMenuAddGems.addEventListener("click", awardBonusGems);
 
   dom.btnHow.addEventListener("click", () => openDialog(dom.modal));
+  dom.btnMenuSettings.addEventListener("click", () => openDialog(dom.modal));
   dom.btnClose.addEventListener("click", () => closeDialog(dom.modal));
-  dom.modal.addEventListener("click", (e) => {
-    if (e.target === dom.modal) closeDialog(dom.modal);
+  dom.modal.addEventListener("click", (event) => {
+    if (event.target === dom.modal) closeDialog(dom.modal);
   });
-  dom.pause.addEventListener("click", (e) => {
-    if (e.target === dom.pause) closePause();
+  dom.pause.addEventListener("click", (event) => {
+    if (event.target === dom.pause) closePause();
   });
 
   dom.btnSound.addEventListener("click", () => {
@@ -578,27 +744,34 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
     showToast(enabled ? "Sound on" : "Sound off");
   });
 
-  dom.settingSound.addEventListener("change", (e) => {
-    updateSettings({ sound: e.target.checked });
-    showToast(e.target.checked ? "Sound on" : "Sound off");
+  dom.settingSound.addEventListener("change", (event) => {
+    updateSettings({ sound: event.target.checked });
+    showToast(event.target.checked ? "Sound on" : "Sound off");
   });
 
-  dom.settingMusic.addEventListener("input", (e) => {
-    const value = Number(e.target.value);
+  dom.settingMusic.addEventListener("input", (event) => {
+    const value = Number(event.target.value);
     dom.settingMusicValue.textContent = value;
     updateSettings({ musicVolume: value });
   });
 
-  dom.settingFx.addEventListener("input", (e) => {
-    const value = Number(e.target.value);
+  dom.settingFx.addEventListener("input", (event) => {
+    const value = Number(event.target.value);
     dom.settingFxValue.textContent = value;
     updateSettings({ fxVolume: value });
   });
 
-  dom.settingMotion.addEventListener("change", (e) => {
-    updateSettings({ reduceMotion: e.target.checked });
-    showToast(e.target.checked ? "Reduce motion on" : "Reduce motion off");
+  dom.settingMotion.addEventListener("change", (event) => {
+    updateSettings({ reduceMotion: event.target.checked });
+    showToast(event.target.checked ? "Reduce motion on" : "Reduce motion off");
   });
+
+  dom.btnNavHome.addEventListener("click", () => showToast("You are already home."));
+  dom.btnNavQuests.addEventListener("click", () => showToast("Quests are coming soon."));
+  dom.btnNavRankings.addEventListener("click", () =>
+    showToast(`Best ${activeBook.title} score: ${storage.getBestScore(activeBook.id)}`)
+  );
+  dom.btnNavProfile.addEventListener("click", () => showToast("Profiles are coming soon."));
 
   window.addEventListener("keydown", handleKey);
 
@@ -607,6 +780,9 @@ export function initUI({ store, audio, confetti, storage, initialBook }) {
   renderMeta();
   renderProgress();
   renderLives();
+  renderGroupHotspots();
+  renderMapTray();
+  renderMenu();
   showMenu();
 
   return {

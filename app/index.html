@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Acts Quiz Arcade</title>
+    <title>Bible Kids</title>
     <link rel="stylesheet" href="./src/styles.css" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="theme-color" content="#f3c98a" />
@@ -15,59 +15,144 @@
 
     <!-- Menu Screen -->
     <div id="menu" class="overlay is-visible" role="dialog" aria-modal="true" aria-label="Main menu">
-      <div class="paper panel" tabindex="-1">
-        <div class="panel-header">
-          <div>
-            <h2 class="panel-title">Acts Quiz Arcade</h2>
-            <p class="panel-subtitle">Pick a mode.</p>
+      <div class="menu-screen" tabindex="-1">
+        <div class="menu-topbar">
+          <button id="btnMenuSettings" class="menu-icon-button" aria-label="Open settings">
+            <span aria-hidden="true">⚙</span>
+          </button>
+
+          <div class="menu-gem-pill">
+            <span class="menu-gem-mark" aria-hidden="true">💎</span>
+            <span id="menuGemCount" class="menu-gem-value">9999</span>
+            <button id="btnMenuAddGems" class="menu-gem-add" aria-label="Add gems">+</button>
           </div>
-          <div class="panel-icon" aria-hidden="true">🪅</div>
         </div>
 
-        <div class="panel-actions">
-          <button id="btnNewGame" class="answer">New game</button>
-          <button id="btnContinue" class="answer">Continue</button>
+        <section class="menu-hero" aria-label="Bible Kids">
+          <div class="menu-hero-art" aria-hidden="true"></div>
+          <div class="menu-hero-copy">
+            <p class="menu-eyebrow">Adventure through every book</p>
+            <h1 class="menu-title">Bible Kids</h1>
+            <p class="menu-subtitle">Choose how you want to continue the journey.</p>
+          </div>
+        </section>
+
+        <div class="menu-actions">
+          <button id="btnNewGame" class="menu-action menu-action-blue">
+            <span class="menu-action-icon" aria-hidden="true">📖</span>
+            <span class="menu-action-copy">
+              <span class="menu-action-title">New Adventure</span>
+              <span class="menu-action-note">Start a new journey</span>
+            </span>
+            <span class="menu-action-arrow" aria-hidden="true">›</span>
+          </button>
+
+          <button id="btnOpenMap" class="menu-action menu-action-green">
+            <span class="menu-action-icon" aria-hidden="true">🗺</span>
+            <span class="menu-action-copy">
+              <span class="menu-action-title">Book Map</span>
+              <span class="menu-action-note">Explore all 66 books</span>
+            </span>
+            <span class="menu-action-arrow" aria-hidden="true">›</span>
+          </button>
+
+          <button id="btnContinue" class="menu-action menu-action-purple">
+            <span class="menu-action-icon" aria-hidden="true">📦</span>
+            <span class="menu-action-copy">
+              <span class="menu-action-title">Continue</span>
+              <span id="continueButtonNote" class="menu-action-note">Pick up where you left off</span>
+            </span>
+            <span class="menu-action-arrow" aria-hidden="true">›</span>
+          </button>
         </div>
 
-        <div class="badge panel-stats">
-          <div class="row-between">
-            <span>Best</span>
-            <span id="bestScoreMenu" class="value">0</span>
-          </div>
-          <div class="row-between">
-            <span>Saved run</span>
-            <span id="saveStatus" class="value">None</span>
-          </div>
-          <div id="saveMeta" class="menu-meta"></div>
-        </div>
+        <section class="paper menu-last-card" aria-label="Last played">
+          <div class="menu-last-badge" aria-hidden="true">📘</div>
+          <div class="menu-last-main">
+            <div class="menu-last-top">
+              <div>
+                <p class="menu-last-label">Last played</p>
+                <h2 id="menuLastBook" class="menu-last-title">Acts</h2>
+                <p id="menuLastLevel" class="menu-last-level">Level 1</p>
+              </div>
 
-        <p class="panel-tip">Tip: Keep a streak. Every 3 correct gives a bonus.</p>
+              <div class="menu-last-metrics">
+                <span class="menu-last-metric"><span aria-hidden="true">⭐</span><strong id="menuLastScore">0</strong></span>
+                <span class="menu-last-metric"><span aria-hidden="true">❤️</span><strong id="menuLastLives">3</strong></span>
+              </div>
+            </div>
+
+            <div class="menu-last-progress">
+              <div class="menu-last-progress-track">
+                <div id="menuLastProgressFill" class="menu-last-progress-bar"></div>
+              </div>
+              <span id="menuLastProgressText" class="menu-last-progress-text">0/0</span>
+            </div>
+
+            <p id="menuLastStatus" class="menu-last-status">Choose a book to begin.</p>
+          </div>
+        </section>
+
+        <nav class="menu-nav" aria-label="Main sections">
+          <button id="btnNavHome" class="menu-nav-item is-active">
+            <span class="menu-nav-icon" aria-hidden="true">⌂</span>
+            <span>Home</span>
+          </button>
+          <button id="btnNavQuests" class="menu-nav-item">
+            <span class="menu-nav-icon" aria-hidden="true">📜</span>
+            <span>Quests</span>
+          </button>
+          <button id="btnNavRankings" class="menu-nav-item">
+            <span class="menu-nav-icon" aria-hidden="true">🏆</span>
+            <span>Rankings</span>
+          </button>
+          <button id="btnNavProfile" class="menu-nav-item">
+            <span class="menu-nav-icon" aria-hidden="true">☺</span>
+            <span>Profile</span>
+          </button>
+        </nav>
       </div>
     </div>
 
     <!-- Book Map -->
-    <div id="bookMap" class="overlay" role="dialog" aria-modal="true" aria-label="Bible story map">
-      <div class="paper panel map-panel" tabindex="-1">
-        <div class="panel-header map-header">
-          <div>
-            <h2 class="panel-title">Story Map</h2>
-            <p class="panel-subtitle">Tap a glowing medallion to begin.</p>
+    <div id="bookMap" class="overlay map-overlay" role="dialog" aria-modal="true" aria-label="Bible story map">
+      <div class="map-screen" tabindex="-1">
+        <div class="map-topbar">
+          <button id="btnCloseMap" class="menu-icon-button map-back" aria-label="Back to menu">
+            <span aria-hidden="true">‹</span>
+          </button>
+
+          <div class="map-heading">
+            <h2 class="panel-title">Bible Map</h2>
+            <p id="mapHint" class="panel-subtitle">Tap a region banner to zoom in.</p>
           </div>
-          <button id="btnCloseMap" class="badge" aria-label="Back to menu">Back</button>
+
+          <button id="btnResetMapZoom" class="badge hidden" aria-label="Show all groups">All Books</button>
         </div>
 
-        <div class="book-map">
-          <img
-            class="map-art"
-            src="./assets/bible-story-map.png"
-            alt="Illustrated Bible story map with selectable book medallions."
-          />
-          <div id="bookNodes" class="map-nodes"></div>
-        </div>
+        <div class="map-stage">
+          <div class="book-map">
+            <div id="mapCanvas" class="map-canvas">
+              <img
+                class="map-art"
+                src="./assets/bible-map-66.png"
+                alt="Illustrated Bible map showing the 66 books grouped by section."
+              />
+              <div id="groupHotspots" class="map-hotspots"></div>
+            </div>
+          </div>
 
-        <div class="row-between map-meta">
-          <span id="mapHint">Tap a glowing medallion to begin.</span>
-          <span id="selectedBookLabel" class="value"></span>
+          <section id="mapTray" class="map-tray hidden" aria-label="Selected book group">
+            <div class="map-tray-head">
+              <div>
+                <h3 id="mapGroupTitle" class="map-tray-title">Choose a region</h3>
+                <p id="mapGroupCaption" class="map-tray-copy">Each banner zooms in to its book group.</p>
+              </div>
+              <button id="btnResetMapTray" class="badge hidden" aria-label="Choose another group">Back</button>
+            </div>
+
+            <div id="mapBookButtons" class="map-book-grid"></div>
+          </section>
         </div>
       </div>
     </div>
@@ -164,24 +249,24 @@
           <div class="badge gem-count">
             <span id="gemCount">9999</span>
           </div>
-          <button id="btnAddGems" class="iconbtn" aria-label="Add gems" title="Bonus">＋</button>
+          <button id="btnAddGems" class="iconbtn" aria-label="Add gems" title="Bonus">+</button>
         </div>
 
         <div class="hud-right">
-          <button id="btnPause" class="iconbtn" aria-label="Pause" title="Pause">⏸</button>
-          <button id="btnReset" class="iconbtn" aria-label="Menu" title="Menu">↩</button>
-          <button id="btnHow" class="iconbtn" aria-label="How to play and settings" title="How to play">⚙</button>
+          <button id="btnPause" class="iconbtn" aria-label="Pause" title="Pause">II</button>
+          <button id="btnReset" class="iconbtn" aria-label="Menu" title="Menu">&larr;</button>
+          <button id="btnHow" class="iconbtn" aria-label="How to play and settings" title="How to play">?</button>
         </div>
       </header>
 
       <!-- Progress -->
       <section class="progress">
         <div class="progress-row">
-          <span class="star" aria-hidden="true">⭐</span>
+          <span class="star" aria-hidden="true">★</span>
           <div class="track">
             <div id="progressFill" class="track-fill"></div>
           </div>
-          <span class="star" aria-hidden="true">⭐</span>
+          <span class="star" aria-hidden="true">★</span>
         </div>
         <div class="progress-meta">
           <span id="statBookName">Acts</span>
@@ -196,7 +281,7 @@
         <div class="question-meta">
           <div id="statLives" class="lives"></div>
           <div class="badge timer">
-            <span aria-hidden="true">⏱</span>
+            <span aria-hidden="true">T</span>
             <span id="timerLabel">15s</span>
           </div>
         </div>
